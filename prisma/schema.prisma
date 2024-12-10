@@ -29,30 +29,24 @@ enum Status {
 }
 
 model User {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) 
   username  String
   email     String   @unique
   password  String
   avatar    String?
   isVerify  Boolean  @default(false)
-  refCode   String?  @unique
-  refCodeBy String?
+  refCode   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  points    Int      @default(0)
 
   orders  Order[]
   reviews Reviews[]
-
-  usercoupon UserCoupon? @relation(fields: [userCouponId], references: [id])
-
-  userCouponId Int?
-  RefLog       RefLog? @relation(fields: [refLogId], references: [id])
-  refLogId     Int?
+  points  UserPoint[]
+  coupons UserCoupon[] @relation("UserCoupons")
 }
 
 model Promotor {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) 
   name      String
   email     String   @unique
   password  String
@@ -67,21 +61,21 @@ model Promotor {
 model UserCoupon {
   id         Int      @id @default(autoincrement())
   isRedeem   Boolean  @default(true)
-  percentage Float    @default(0.0)
-  expiredAt  DateTime
+  percentage Int      @default(10)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  orderdetail OrderDetail[]
-  User        User[]
+  users User[] @relation("UserCoupons")
 }
 
-model RefLog {
+model UserPoint {
   id        Int      @id @default(autoincrement())
-  pointGet  Int      @default(0)
+  point     Int      @default(0)
   createdAt DateTime @default(now())
-  expiredAt DateTime
-  isUsed    Boolean
+  updatedAt DateTime @updatedAt
 
-  user User[]
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Event {
@@ -146,9 +140,7 @@ model OrderDetail {
   id       Int @id @default(autoincrement())
   quantity Int
 
-  orderId      Int?
-  order        Order?      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  tickets      Ticket[]
-  UserCoupon   UserCoupon? @relation(fields: [userCouponId], references: [id])
-  userCouponId Int?
+  orderId Int?
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
 }
