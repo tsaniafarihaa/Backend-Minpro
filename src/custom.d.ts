@@ -7,7 +7,7 @@ export type UserPayload = {
 };
 
 export type PromotorPayload = {
-    id: number;
+    id: string;
 
 };
 

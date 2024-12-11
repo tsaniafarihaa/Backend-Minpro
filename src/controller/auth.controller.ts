@@ -12,8 +12,6 @@ import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
 
 export class AuthController {
-  //Login User
-
   async loginUser(req: Request, res: Response) {
     try {
       const { data, password } = req.body;
@@ -128,10 +126,10 @@ export class AuthController {
         html,
       });
 
-      res.status(201).send("Registration Successful");
+      res.status(201).json({ massage: "Registration Succesfull" });
     } catch (err: any) {
-      console.error(err.message || err);
-      res.status(400).send(err.message || "Registration Failed");
+      console.error(err);
+      res.status(400).json({ massage: "Internal server error" });
     }
   }
 
@@ -162,12 +160,12 @@ export class AuthController {
       const payload = { id: newPromotor.id };
 
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      const link = `http://localhost:3000/verify${token}`;
+      const linkPromotor = `http://localhost:3000/verify/${token}`;
 
       const templatePath = path.join(__dirname, "../templates", "verify.hbs");
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
-      const html = compiledTemplate({ name, link });
+      const html = compiledTemplate({ name, linkPromotor });
 
       await transporter.sendMail({
         from: "dattariqf@gmail.com",
@@ -176,10 +174,10 @@ export class AuthController {
         html,
       });
 
-      res.status(201).send("Registration Successful");
+      res.status(201).json({ massage: "Registration Succes" });
     } catch (err) {
       console.error(err);
-      res.status(400).send("Registration Failed");
+      res.status(400).json({ massage: "Registration Failed" });
     }
   }
 
@@ -205,11 +203,27 @@ export class AuthController {
           httpOnly: true,
           maxAge: 24 * 3600 * 1000,
           path: "/",
+          secure: process.env.NODE_ENV === "production"
         })
         .send({ massage: "Login Promotor Succesfully" });
     } catch (err) {
       console.error(err);
       res.status(400).send("Login Failed");
+    }
+  }
+
+  async verifyPromotor(req: Request, res: Response) {
+    try {
+      const { token } = req.params;
+      const verifiedPromotor: any = verify(token, process.env.JWT_KEY!);
+      await prisma.promotor.update({
+        data: { isVerify: true },
+        where: { id: verifiedPromotor.id },
+      });
+      res.status(200).send({ message: "Verify Successfully" });
+    } catch (err) {
+      console.log(err);
+      res.status(400).send(err);
     }
   }
 }

@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { verify } from "jsonwebtoken";
-import { UserPayload } from "../custom";
+import { PromotorPayload } from "../custom";
 
 export const verifyTokenPromotor = async (
   req: Request,
@@ -8,17 +8,19 @@ export const verifyTokenPromotor = async (
   next: NextFunction
 ) => {
   try {
+    // Get token from cookies
     const token = req.cookies?.token;
-    if (!token) throw { message: "Unauthorize!" };
-    console.log(token);
+    if (!token) {
+      throw { message: "Unauthorized!" };
+    }
 
+    // Verify the token
     const verifiedPromotor = verify(token, process.env.JWT_KEY!);
-
-    req.promotor = verifiedPromotor as UserPayload;
+    req.promotor = verifiedPromotor as PromotorPayload;
 
     next();
   } catch (err) {
-    console.log(err);
-    res.status(400).send(err);
+    console.error("Token verification error:", err);
+    res.status(401).json({ message: "Unauthorized!", error: err });
   }
 };

@@ -3,6 +3,7 @@ import { AuthController } from "../controller/auth.controller";
 import { verifyToken } from "../middleware/verify";
 import { verifyTokenPromotor } from "../middleware/verify.promotor";
 
+
 export class AuthRouter {
   private authController: AuthController;
   private router: Router;
@@ -20,7 +21,8 @@ export class AuthRouter {
 
    //FOR PROMOTOR
    this.router.post("/promotorRegister", this.authController.registerPromotor)
-   this.router.post("/promotorLogin", verifyTokenPromotor, this.authController.loginPromotor)
+   this.router.post("/promotorLogin",this.authController.loginPromotor)
+   this.router.patch("/verify/:token", this.authController.verifyPromotor)
   }
 
   public getRouter(): Router {
