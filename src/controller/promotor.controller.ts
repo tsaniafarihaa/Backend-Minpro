@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Request, Response } from "express";
 import prisma from "../prisma";
-
+import { cloudinaryUpload } from "../services/cloudinary";
 
 export class PromotorController {
   async getPromotor(req: Request, res: Response) {
@@ -16,7 +16,9 @@ export class PromotorController {
           { email: { contains: search as string, mode: "insensitive" } },
         ];
       }
-      const countPromotor = await prisma.promotor.aggregate({ _count: { _all: true } });
+      const countPromotor = await prisma.promotor.aggregate({
+        _count: { _all: true },
+      });
       const total_page = Math.ceil(countPromotor._count._all / +limit);
       const promotor = await prisma.promotor.findMany({
         where: filter,
@@ -33,18 +35,16 @@ export class PromotorController {
 
   async getPromotorProfile(req: Request, res: Response): Promise<void> {
     try {
-      // Extract promotor ID from the authenticated token
-      const promotorId = req.promotor?.id
+      const promotorId = req.promotor?.id;
       console.log("Promotor ID from Request:", promotorId);
 
       if (!promotorId) {
         res.status(400).json({ message: "Promotor ID is missing" });
-        return; // Ensure no further code is executed
+        return;
       }
 
-      // Fetch promotor details from the database
       const promotor = await prisma.promotor.findUnique({
-        where: { id:promotorId },
+        where: { id: promotorId },
         select: {
           id: true,
           name: true,
@@ -67,7 +67,6 @@ export class PromotorController {
       res.status(500).json({ message: "Internal server error", error: err });
     }
   }
-  
 
   async createPromotor(req: Request, res: Response) {
     try {
@@ -108,4 +107,19 @@ export class PromotorController {
       res.send(400).send(err);
     }
   }
+    async editAvatarPromotor(req: Request, res: Response) {
+      try {
+        if (!req.file) throw { message: "file empty" };
+        const { secure_url } = await cloudinaryUpload(req.file, "promotor_profile");
+  
+        await prisma.promotor.update({
+          data: { avatar: secure_url },
+          where: { id: req.promotor?.id },
+        });
+        res.status(200).send({ message: "avatar edited !" });
+      } catch (err) {
+        console.log(err);
+        res.status(400).send(err);
+      }
+    }
 }

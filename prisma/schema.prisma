@@ -29,26 +29,27 @@ enum Status {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String
-  email     String   @unique
-  password  String
-  avatar    String?
-  isVerify  Boolean  @default(false)
-  refCode   String?  @unique
-  refCodeBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  points    Int      @default(0)
+  id         String   @id @default(uuid())
+  username   String
+  email      String   @unique
+  password   String
+  avatar     String?  @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734147636/defaultphotos_tvyjja.jpg")
+  isVerify   Boolean  @default(false)
+  refCode    String?  @unique
+  refCodeBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  points     Int      @default(0)
+  percentage Float?
+
+  usercoupon UserCoupon? @relation(fields: [userCouponId], references: [id])
 
   orders  Order[]
   reviews Reviews[]
 
-  usercoupon UserCoupon? @relation(fields: [userCouponId], references: [id])
-
-  userCouponId Int?
   RefLog       RefLog? @relation(fields: [refLogId], references: [id])
   refLogId     Int?
+  userCouponId Int?
 }
 
 model Promotor {
@@ -56,7 +57,7 @@ model Promotor {
   name      String
   email     String   @unique
   password  String
-  avatar    String?
+  avatar    String?  @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734149527/defaultadmin_ssc0ah.jpg")
   isVerify  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -87,6 +88,7 @@ model RefLog {
 model Event {
   id          Int      @id @default(autoincrement())
   title       String
+  thumbnail   String?  @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
   category    Category
   location    Location
   venue       String
