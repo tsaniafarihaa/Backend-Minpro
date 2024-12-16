@@ -1,10 +1,11 @@
 import express from "express";
 import cookieParser from "cookie-parser";
-import { AuthRouter } from "./router/auth.router"; // Import the AuthRouter class
+import { AuthRouter } from "./router/auth.router"; 
 import path from "path";
 import cors from "cors";
 import dotenv from "dotenv";
 import { UserRouter } from "./router/user.router";
+import { PromotorRouter } from "./router/promotor.router";
 dotenv.config(); 
 
 const PORT: number = 8000;
@@ -22,9 +23,11 @@ app.use(
 
 const authRouter = new AuthRouter();
 const userRouter = new UserRouter()
+const promotorRouter = new PromotorRouter()
 
 app.use("/api/auth", authRouter.getRouter());
 app.use("/api/users",userRouter.getRouter())
+app.use("/api/promotors", promotorRouter.getRouter() )
 
 // Test route
 app.get("/api", (req, res) => {

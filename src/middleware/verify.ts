@@ -1,27 +1,26 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { verify } from "jsonwebtoken";
-import { UserPayload } from "../custom";
 
-export const verifyToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
+  }
+
   try {
-    // const token = req.header("Authorization")?.replace("Bearer ", "");
-    const token = req.cookies?.token;
-    if (!token) throw { message: "Unauthorize!" };
-    console.log(token);
-    
-    const verifiedUser = verify(token, process.env.JWT_KEY!);
+    const decoded = verify(token, process.env.JWT_KEY!) as { id: string; type: string };
 
-    req.user = verifiedUser as UserPayload;
+    if (decoded.type === "user") {
+      req.user = { id: decoded.id };
+    } else if (decoded.type === "promotor") {
+      req.promotor = { id: decoded.id };
+    } else {
+      return res.status(403).json({ message: "Forbidden: Invalid token type" });
+    }
 
     next();
   } catch (err) {
-    console.log(err);
-    res.status(400).send(err);
+    res.status(401).json({ message: "Unauthorized: Invalid token" });
   }
-}
-
-
+};

@@ -12,23 +12,23 @@ import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
 
 export class AuthController {
-  //Login User
-
   async loginUser(req: Request, res: Response) {
     try {
       const { data, password } = req.body;
       const user = await findUser(data, data);
 
-      if (!user) throw { massage: "Account not found !" };
-      if (!user.isVerify) throw { massage: "Account not Verif !" };
+      if (!user) throw { massage: "User not found !" };
+      if (!user.isVerify) throw { massage: "User not Verif !" };
 
       const isValidPass = await compare(password, user.password);
-      if (!isValidPass) {
+      if (!user) {
         throw { massage: "Incorrect Password" };
       }
 
-      const payload = { id: user.id };
+      const payload = { id: user.id, type: "user" };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
+      console.log("Generated Token:", token);
+      console.log("Token Payload:", payload);
 
       res
         .status(200)
@@ -38,10 +38,10 @@ export class AuthController {
           path: "/",
           secure: process.env.NODE_ENV === "production",
         })
-        .send({ massage: "Login Succesfully", user });
+        .send({ massage: "Login User Succesfully" });
     } catch (err) {
       console.error(err);
-      res.status(400).send("login fail please check again");
+      res.status(400).send("Login Failed");
     }
   }
 
@@ -88,9 +88,10 @@ export class AuthController {
             expiredAt: addMonths(new Date(), 3),
           },
         });
-
+        newUserData.percentage = coupon.percentage;
         newUserData.userCouponId = coupon.id;
         newUserData.refCodeBy = referer.id;
+
         //log untuk melihat hasil si referal dari siapa
         await prisma.refLog.create({
           data: {
@@ -109,14 +110,18 @@ export class AuthController {
 
       const payload = { id: newUser.id };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      const link = `http://localhost:3000/verify/${token}`;
+      const linkUser = `http://localhost:3000/verifyuser/${token}`;
 
-      const templatePath = path.join(__dirname, "../templates", "verify.hbs");
+      const templatePath = path.join(
+        __dirname,
+        "../templates",
+        "verifyUser.hbs"
+      );
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
       const html = compiledTemplate({
         username,
-        link,
+        linkUser,
         refCode: newUser.refCode,
       });
 
@@ -128,10 +133,25 @@ export class AuthController {
         html,
       });
 
-      res.status(201).send("Registration Successful");
+      res.status(201).json({ massage: "Registration Succesfull" });
     } catch (err: any) {
-      console.error(err.message || err);
-      res.status(400).send(err.message || "Registration Failed");
+      console.error(err);
+      res.status(400).json({ massage: "Internal server error" });
+    }
+  }
+
+  async verifyUser(req: Request, res: Response) {
+    try {
+      const { token } = req.params;
+      const verifiedUser: any = verify(token, process.env.JWT_KEY!);
+      await prisma.user.update({
+        data: { isVerify: true },
+        where: { id: verifiedUser.id },
+      });
+      res.status(200).send({ message: "Verify Successfully" });
+    } catch (err) {
+      console.log(err);
+      res.status(400).send(err);
     }
   }
 
@@ -162,12 +182,16 @@ export class AuthController {
       const payload = { id: newPromotor.id };
 
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      const link = `http://localhost:3000/verify${token}`;
+      const linkPromotor = `http://localhost:3000/verifypromotor/${token}`;
 
-      const templatePath = path.join(__dirname, "../templates", "verify.hbs");
+      const templatePath = path.join(
+        __dirname,
+        "../templates",
+        "verifyPromotor.hbs"
+      );
       const templateSource = fs.readFileSync(templatePath, "utf-8");
       const compiledTemplate = handlebars.compile(templateSource);
-      const html = compiledTemplate({ name, link });
+      const html = compiledTemplate({ name, linkPromotor });
 
       await transporter.sendMail({
         from: "dattariqf@gmail.com",
@@ -176,10 +200,10 @@ export class AuthController {
         html,
       });
 
-      res.status(201).send("Registration Successful");
+      res.status(201).json({ massage: "Registration Succes" });
     } catch (err) {
       console.error(err);
-      res.status(400).send("Registration Failed");
+      res.status(400).json({ massage: "Registration Failed" });
     }
   }
 
@@ -196,8 +220,10 @@ export class AuthController {
         throw { massage: "Incorrect Password" };
       }
 
-      const payload = { id: promotor.id };
+      const payload = { id: promotor.id, type: "promotor" };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
+      console.log("Generated Token:", token);
+      console.log("Token Payload:", payload);
 
       res
         .status(200)
@@ -205,11 +231,92 @@ export class AuthController {
           httpOnly: true,
           maxAge: 24 * 3600 * 1000,
           path: "/",
+          secure: process.env.NODE_ENV === "production",
         })
         .send({ massage: "Login Promotor Succesfully" });
     } catch (err) {
       console.error(err);
       res.status(400).send("Login Failed");
+    }
+  }
+
+  async verifyPromotor(req: Request, res: Response) {
+    try {
+      const { token } = req.params;
+      const verifiedPromotor: any = verify(token, process.env.JWT_KEY!);
+      await prisma.promotor.update({
+        data: { isVerify: true },
+        where: { id: verifiedPromotor.id },
+      });
+      res.status(200).send({ message: "Verify Successfully" });
+    } catch (err) {
+      console.log(err);
+      res.status(400).send(err);
+    }
+  }
+
+  async getSession(req: Request, res: Response): Promise<void> {
+    try {
+      const token =
+        req.cookies?.token || req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        res.status(401).json({ message: "Unauthorized: No token provided" });
+        return;
+      }
+
+      const decoded = verify(token, process.env.JWT_KEY!) as {
+        id: string;
+        type: string;
+      };
+
+      if (!decoded || !decoded.type) {
+        res.status(403).json({ message: "Forbidden: Invalid token" });
+        return;
+      }
+
+      if (decoded.type === "promotor") {
+        const promotor = await prisma.promotor.findUnique({
+          where: { id: decoded.id },
+        });
+        if (!promotor) {
+          res.status(404).json({ message: "Promotor not found" });
+          return;
+        }
+
+        res.status(200).json({
+          id: promotor.id,
+          type: "promotor",
+          name: promotor.name,
+          email: promotor.email,
+          avatar: promotor.avatar,
+        });
+      } else if (decoded.type === "user") {
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.id },
+        });
+        if (!user) {
+          res.status(404).json({ message: "User not found" });
+          return;
+        }
+
+        res.status(200).json({
+          id: user.id,
+          type: "user",
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          points: user.points,
+          refCode: user.refCode,
+          percentage: user.percentage,
+        });
+      } else {
+        res.status(403).json({ message: "Forbidden: Unknown token type" });
+      }
+    } catch (err) {
+      console.error("Error fetching session:", err);
+      res
+        .status(401)
+        .json({ message: "Unauthorized: Invalid or expired token" });
     }
   }
 }

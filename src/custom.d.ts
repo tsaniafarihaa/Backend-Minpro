@@ -3,11 +3,11 @@ import { Request } from "express";
 import 'express';
 
 export type UserPayload = {
-    id: number;
+    id: string;
 };
 
 export type PromotorPayload = {
-    id: number;
+    id: string;
 
 };
 

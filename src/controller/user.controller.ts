@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Request, Response } from "express";
 import prisma from "../prisma";
+import { cloudinaryUpload } from "../services/cloudinary";
 
 
 export class UserController {
@@ -31,11 +32,18 @@ export class UserController {
     }
   }
 
-  async getUserId(req: Request, res: Response) {
+  async getUserProfile(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const user = await prisma.user.findUnique({
-        where: { id },
+      const userId = req.user?.id;
+      console.log("User  ID from Request:", userId);
+
+      if (!userId) {
+        res.status(400).json({ message: "User ID is missing" });
+        return;
+      }
+
+      const users = await prisma.user.findUnique({
+        where: { id: userId },
         select: {
           id: true,
           username: true,
@@ -44,25 +52,19 @@ export class UserController {
           createdAt: true,
           updatedAt: true,
           isVerify: true,
+          percentage: true,
         },
       });
-      res.status(200).json(user);
+
+      if (!users) {
+        res.status(404).json({ message: "User not found" });
+        return; 
+      }
+
+      res.status(200).json(users);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching users profile:", err);
       res.status(500).json({ message: "Internal server error", error: err });
-    }
-  }
-
-  async createUser(req: Request, res: Response) {
-    try {
-      const newUser = await prisma.user.create({
-        data: req.body,
-      });
-
-      res.status(201).send("User Created");
-    } catch (err) {
-      console.error("Error creating user:", err);
-      res.status(400).send(err);
     }
   }
 
@@ -90,6 +92,22 @@ export class UserController {
     } catch (err) {
       console.log(err);
       res.send(400).send(err);
+    }
+  }
+
+  async editAvatarUser(req: Request, res: Response) {
+    try {
+      if (!req.file) throw { message: "file empty" };
+      const { secure_url } = await cloudinaryUpload(req.file, "user_profile");
+
+      await prisma.user.update({
+        data: { avatar: secure_url },
+        where: { id: req.user?.id },
+      });
+      res.status(200).send({ message: "avatar edited !" });
+    } catch (err) {
+      console.log(err);
+      res.status(400).send(err);
     }
   }
 }
