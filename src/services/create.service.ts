@@ -1,6 +1,6 @@
 import prisma from "../prisma";
 import { cloudinaryUpload } from "./cloudinary";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../prisma/generated/client";
 
 export class CreateEventService {
   private generateSlug(title: string): string {

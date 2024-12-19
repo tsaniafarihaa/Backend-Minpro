@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
     "start": "npm run build && node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && cp -rv public dist && cp -rv src/templates dist",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.0.0",
+    "../../prisma/generated/client": "^6.0.0",
     "@types/streamifier": "^0.1.2",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.5.1",
