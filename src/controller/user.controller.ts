@@ -1,8 +1,7 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../prisma/generated/client";
 import { Request, Response } from "express";
 import prisma from "../prisma";
 import { cloudinaryUpload } from "../services/cloudinary";
-
 
 export class UserController {
   async getUser(req: Request, res: Response) {
@@ -53,17 +52,17 @@ export class UserController {
           updatedAt: true,
           isVerify: true,
           percentage: true,
-          usercoupon:{
+          usercoupon: {
             select: {
-              expiredAt:true
-            }
-          }
+              expiredAt: true,
+            },
+          },
         },
       });
 
       if (!users) {
         res.status(404).json({ message: "User not found" });
-        return; 
+        return;
       }
 
       res.status(200).json(users);
