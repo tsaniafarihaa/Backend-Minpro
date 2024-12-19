@@ -6,7 +6,7 @@
     "start": "npm run build && node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && cp -rv src/templates dist",
+    "build": "tsc && cp -rv public dist && cp -rv src/templates dist",
     "postinstall": "prisma generate"
   },
   "keywords": [],
