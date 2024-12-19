@@ -11,6 +11,8 @@ import { transporter } from "../services/mailer";
 import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
 
+const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE
+
 export class AuthController {
   async loginUser(req: Request, res: Response) {
     try {
@@ -110,7 +112,7 @@ export class AuthController {
 
       const payload = { id: newUser.id };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      const linkUser = `http://localhost:3000/verifyuser/${token}`;
+      const linkUser = `${base_url_fe}/verifyuser/${token}`;
 
       const templatePath = path.join(
         __dirname,
@@ -182,7 +184,7 @@ export class AuthController {
       const payload = { id: newPromotor.id };
 
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      const linkPromotor = `http://localhost:3000/verifypromotor/${token}`;
+      const linkPromotor = `${base_url_fe}/verifypromotor/${token}`;
 
       const templatePath = path.join(
         __dirname,
@@ -293,6 +295,23 @@ export class AuthController {
       } else if (decoded.type === "user") {
         const user = await prisma.user.findUnique({
           where: { id: decoded.id },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            avatar: true,
+            createdAt: true,
+            points:true,
+            refCode: true,
+            updatedAt: true,
+            isVerify: true,
+            percentage: true,
+            usercoupon:{
+              select: {
+                expiredAt:true
+              }
+            }
+          },
         });
         if (!user) {
           res.status(404).json({ message: "User not found" });
@@ -308,6 +327,7 @@ export class AuthController {
           points: user.points,
           refCode: user.refCode,
           percentage: user.percentage,
+          userCoupon: user.usercoupon?.expiredAt
         });
       } else {
         res.status(403).json({ message: "Forbidden: Unknown token type" });
