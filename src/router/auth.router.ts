@@ -20,7 +20,7 @@ export class AuthRouter {
    this.router.post("/promotorRegister", this.authController.registerPromotor)
    this.router.post("/promotorLogin", this.authController.loginPromotor)
 
-   //Untuk Session sugan bisa
+   //Untuk Session sugan bisa, bisa mantap
    this.router.get("/session", this.authController.getSession)
 
    //Untuk Verify

@@ -9,6 +9,7 @@ import cors from "cors";
 import "dotenv/config";
 
 const PORT: number = 8000;
+const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE
 
 const app = express();
 app.use(express.json());
@@ -16,8 +17,10 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
-    credentials: true,
+
+    origin: `${base_url_fe}`, 
+    credentials: true, 
+
   })
 );
 
