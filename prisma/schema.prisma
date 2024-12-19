@@ -88,6 +88,7 @@ model RefLog {
 model Event {
   id          Int      @id @default(autoincrement())
   title       String
+  slug        String   @unique
   thumbnail   String?  @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
   category    Category
   location    Location
@@ -134,9 +135,8 @@ model Order {
 model Ticket {
   id       Int    @id @default(autoincrement())
   category String
-  desc     String
-  seats    Int
   price    Int
+  quantity Int
 
   eventId       Int?
   event         Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)

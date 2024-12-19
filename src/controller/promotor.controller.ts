@@ -107,19 +107,22 @@ export class PromotorController {
       res.send(400).send(err);
     }
   }
-    async editAvatarPromotor(req: Request, res: Response) {
-      try {
-        if (!req.file) throw { message: "file empty" };
-        const { secure_url } = await cloudinaryUpload(req.file, "promotor_profile");
-  
-        await prisma.promotor.update({
-          data: { avatar: secure_url },
-          where: { id: req.promotor?.id },
-        });
-        res.status(200).send({ message: "avatar edited !" });
-      } catch (err) {
-        console.log(err);
-        res.status(400).send(err);
-      }
+  async editAvatarPromotor(req: Request, res: Response) {
+    try {
+      if (!req.file) throw { message: "file empty" };
+      const { secure_url } = await cloudinaryUpload(
+        req.file,
+        "promotor_profile"
+      );
+
+      await prisma.promotor.update({
+        data: { avatar: secure_url },
+        where: { id: req.promotor?.id },
+      });
+      res.status(200).send({ message: "avatar edited !" });
+    } catch (err) {
+      console.log(err);
+      res.status(400).send(err);
     }
+  }
 }
