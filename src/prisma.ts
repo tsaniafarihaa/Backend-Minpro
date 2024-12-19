@@ -1,3 +1,3 @@
-import { PrismaClient,Prisma } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
-export default new PrismaClient({log: ['query', 'info', 'error','warn']})
+export default new PrismaClient({ log: ["query", "info", "error", "warn"] });
