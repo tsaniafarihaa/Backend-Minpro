@@ -52,11 +52,11 @@ export class UserController {
           updatedAt: true,
           isVerify: true,
           percentage: true,
-          usercoupon: {
+          usercoupon:{
             select: {
-              expiredAt: true,
-            },
-          },
+              expiredAt:true
+            }
+          }
         },
       });
 

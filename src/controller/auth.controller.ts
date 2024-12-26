@@ -11,7 +11,7 @@ import { transporter } from "../services/mailer";
 import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
 
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE
+const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
 
 export class AuthController {
   async loginUser(req: Request, res: Response) {
@@ -19,31 +19,26 @@ export class AuthController {
       const { data, password } = req.body;
       const user = await findUser(data, data);
 
-      if (!user) throw { massage: "User not found !" };
-      if (!user.isVerify) throw { massage: "User not Verif !" };
+      if (!user) throw { message: "User not found!" };
+      if (!user.isVerify) throw { message: "User not verified!" };
 
       const isValidPass = await compare(password, user.password);
-      if (!user) {
-        throw { massage: "Incorrect Password" };
-      }
+      if (!isValidPass) throw { message: "Incorrect password!" };
 
       const payload = { id: user.id, type: "user" };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
       console.log("Generated Token:", token);
       console.log("Token Payload:", payload);
 
-      res
-        .status(200)
-        .cookie("token", token, {
-          httpOnly: true,
-          maxAge: 24 * 3600 * 1000,
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-        })
-        .send({ massage: "Login User Succesfully" });
+      res.status(200).send({
+        message: "Login successful",
+        token,
+      });
     } catch (err) {
       console.error(err);
-      res.status(400).send("Login Failed");
+      res.status(400).send({
+        message: "Login failed",
+      });
     }
   }
 
@@ -209,36 +204,55 @@ export class AuthController {
     }
   }
 
-  async loginPromotor(req: Request, res: Response) {
+  async loginPromotor(req: Request, res: Response): Promise<void> {
     try {
       const { data, password } = req.body;
-      const promotor = await findPromotor(data, data);
-
-      if (!promotor) throw { massage: "Promotor not found !" };
-      if (!promotor.isVerify) throw { massage: "Promotor not Verif !" };
-
+  
+      if (!data || !password) {
+        res.status(400).send({ success: false, message: "Data and password are required!" });
+        return;
+      }
+  
+      // Find promotor by name or email
+      const promotor = await prisma.promotor.findFirst({
+        where: {
+          OR: [{ name: data }, { email: data }],
+        },
+      });
+  
+      if (!promotor) {
+        res.status(404).send({ success: false, message: "Promotor not found!" });
+        return;
+      }
+  
+      if (!promotor.isVerify) {
+        res.status(403).send({ success: false, message: "Promotor is not verified!" });
+        return;
+      }
+  
       const isValidPass = await compare(password, promotor.password);
       if (!isValidPass) {
-        throw { massage: "Incorrect Password" };
+        res.status(401).send({ success: false, message: "Incorrect password!" });
+        return;
       }
-
-      const payload = { id: promotor.id, type: "promotor" };
+  
+      const payload = { id: promotor.id, type: "promotor" }; // ada tipecdcd
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
-      console.log("Generated Token:", token);
-      console.log("Token Payload:", payload);
-
-      res
-        .status(200)
-        .cookie("token", token, {
-          httpOnly: true,
-          maxAge: 24 * 3600 * 1000,
-          path: "/",
-          secure: process.env.NODE_ENV === "production",
-        })
-        .send({ massage: "Login Promotor Succesfully" });
-    } catch (err) {
-      console.error(err);
-      res.status(400).send("Login Failed");
+  
+      res.status(200).json({
+        success: true,
+        message: "Login successful!",
+        token,
+      });
+    } catch (err: any) {
+      console.error("Error during promotor login:", {
+        error: err.message,
+        data: req.body.data,
+      });
+      res.status(500).send({
+        success: false,
+        message: "An unexpected error occurred.",
+      });
     }
   }
 
@@ -259,38 +273,47 @@ export class AuthController {
 
   async getSession(req: Request, res: Response): Promise<void> {
     try {
-      const token =
-        req.cookies?.token || req.headers.authorization?.split(" ")[1];
-      if (!token) {
-        res.status(401).json({ message: "Unauthorized: No token provided" });
+      // Retrieve token from Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).send({ message: "Unauthorized: No token provided" });
         return;
       }
 
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        res.status(401).send({ message: "Unauthorized: Token missing" });
+        return;
+      }
+
+      // Verify token
       const decoded = verify(token, process.env.JWT_KEY!) as {
         id: string;
         type: string;
       };
 
       if (!decoded || !decoded.type) {
-        res.status(403).json({ message: "Forbidden: Invalid token" });
+        res.status(403).send({ message: "Forbidden: Invalid token" });
         return;
       }
 
+      // Handle different user types
       if (decoded.type === "promotor") {
         const promotor = await prisma.promotor.findUnique({
           where: { id: decoded.id },
         });
+
         if (!promotor) {
-          res.status(404).json({ message: "Promotor not found" });
+          res.status(404).send({ message: "Promotor not found" });
           return;
         }
 
-        res.status(200).json({
+        res.status(200).send({
           id: promotor.id,
           type: "promotor",
           name: promotor.name,
           email: promotor.email,
-          avatar: promotor.avatar,
+          avatar: promotor.avatar || null,
         });
       } else if (decoded.type === "user") {
         const user = await prisma.user.findUnique({
@@ -301,20 +324,21 @@ export class AuthController {
             email: true,
             avatar: true,
             createdAt: true,
-            points:true,
+            points: true,
             refCode: true,
             updatedAt: true,
             isVerify: true,
             percentage: true,
-            usercoupon:{
+            usercoupon: {
               select: {
-                expiredAt:true
-              }
-            }
+                expiredAt: true,
+              },
+            },
           },
         });
+
         if (!user) {
-          res.status(404).json({ message: "User not found" });
+          res.status(404).send({ message: "User not found" });
           return;
         }
 
@@ -327,16 +351,16 @@ export class AuthController {
           points: user.points,
           refCode: user.refCode,
           percentage: user.percentage,
-          userCoupon: user.usercoupon?.expiredAt
+          userCoupon: user.usercoupon?.expiredAt,
         });
       } else {
         res.status(403).json({ message: "Forbidden: Unknown token type" });
       }
     } catch (err) {
-      console.error("Error fetching session:", err);
+      console.error("Error fetching session:");
       res
         .status(401)
-        .json({ message: "Unauthorized: Invalid or expired token" });
+        .send({ message: "Unauthorized: Invalid or expired token" });
     }
   }
 }
