@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { AuthController } from "../controller/auth.controller";
+import { verifyTokenUser } from "../middleware/verify.user";
+import { verifyTokenPromotor } from "../middleware/verify.promotor";
 
 export class AuthRouter {
   private authController: AuthController;
@@ -21,7 +23,7 @@ export class AuthRouter {
    this.router.post("/promotorLogin", this.authController.loginPromotor)
 
    //Untuk Session sugan bisa, bisa mantap
-   this.router.get("/session", this.authController.getSession)
+   this.router.get("/session", verifyTokenUser,verifyTokenPromotor, this.authController.getSession)
 
    //Untuk Verify
    this.router.post("/verifypromotor/:token", this.authController.verifyPromotor)
