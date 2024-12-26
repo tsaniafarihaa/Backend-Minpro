@@ -1,4 +1,4 @@
-import { User } from "@prisma/client";
+import { User } from "../../prisma/generated/client";
 import { Request } from "express";
 import "express";
 

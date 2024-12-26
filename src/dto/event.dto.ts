@@ -1,4 +1,4 @@
-import { Category, Location } from "@prisma/client";
+import { Category, Location } from "../../prisma/generated/client";
 
 export interface CreateEventDto {
   title: string;
