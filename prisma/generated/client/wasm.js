@@ -125,12 +125,12 @@ exports.Prisma.UserScalarFieldEnum = {
   avatar: 'avatar',
   isVerify: 'isVerify',
   refCode: 'refCode',
-  refCodeBy: 'refCodeBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   points: 'points',
-  percentage: 'percentage',
+  refCodeBy: 'refCodeBy',
   refLogId: 'refLogId',
+  percentage: 'percentage',
   userCouponId: 'userCouponId'
 };
 
@@ -163,8 +163,6 @@ exports.Prisma.RefLogScalarFieldEnum = {
 exports.Prisma.EventScalarFieldEnum = {
   id: 'id',
   title: 'title',
-  slug: 'slug',
-  thumbnail: 'thumbnail',
   category: 'category',
   location: 'location',
   venue: 'venue',
@@ -173,7 +171,9 @@ exports.Prisma.EventScalarFieldEnum = {
   time: 'time',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  promotorId: 'promotorId'
+  promotorId: 'promotorId',
+  thumbnail: 'thumbnail',
+  slug: 'slug'
 };
 
 exports.Prisma.ReviewsScalarFieldEnum = {
@@ -201,9 +201,9 @@ exports.Prisma.TicketScalarFieldEnum = {
   id: 'id',
   category: 'category',
   price: 'price',
-  quantity: 'quantity',
   eventId: 'eventId',
-  orderDetailId: 'orderDetailId'
+  orderDetailId: 'orderDetailId',
+  quantity: 'quantity'
 };
 
 exports.Prisma.OrderDetailScalarFieldEnum = {
