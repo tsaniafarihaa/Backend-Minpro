@@ -34,3 +34,26 @@ export interface CreateEventRequest {
     description?: string;
   }[];
 }
+
+export interface OrderPayload {
+  ticketId: number;
+  quantity: number;
+  totalPrice: number;
+  finalPrice: number;
+  pointsRedeemed?: number;
+  percentage?: number;
+}
+
+export interface OrderResponse {
+  message: string;
+  orderId: number;
+}
+
+export interface OrderRequest {
+  ticketId: number;
+  quantity: number;
+  totalPrice: number;
+  finalPrice: number;
+  pointsRedeemed?: number;
+  percentage?: number;
+}

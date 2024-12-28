@@ -7,9 +7,10 @@ import { eventRouter } from "./router/createevent.router";
 import { eventDetailRouter } from "./router/detail.router";
 import cors from "cors";
 import "dotenv/config";
+import { OrderRouter } from "./router/order.router";
 
 const PORT: number = 8000;
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE
+const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
 
 const app = express();
 app.use(express.json());
@@ -17,22 +18,22 @@ app.use(cookieParser());
 
 app.use(
   cors({
-
-    origin: `${base_url_fe}`, 
-    credentials: true, 
-
+    origin: `${base_url_fe}`,
+    credentials: true,
   })
 );
 
 const authRouter = new AuthRouter();
 const userRouter = new UserRouter();
 const promotorRouter = new PromotorRouter();
+const orderRouter = new OrderRouter();
 
 app.use("/api/auth", authRouter.getRouter());
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", eventDetailRouter.getRouter());
 app.use("/api/events", eventRouter.getRouter());
+app.use("/api/orders", orderRouter.getRouter());
 app.get("/api", (req, res) => {
   res.send("Welcome to the API!");
 });

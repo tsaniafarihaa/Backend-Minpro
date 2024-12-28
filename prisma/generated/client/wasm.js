@@ -17,11 +17,11 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.0.0
+ * Prisma Client JS version: 6.1.0
  * Query Engine version: 5dbef10bdbfb579e07d35cc85fb1518d357cb99e
  */
 Prisma.prismaVersion = {
-  client: "6.0.0",
+  client: "6.1.0",
   engine: "5dbef10bdbfb579e07d35cc85fb1518d357cb99e"
 }
 
@@ -125,12 +125,12 @@ exports.Prisma.UserScalarFieldEnum = {
   avatar: 'avatar',
   isVerify: 'isVerify',
   refCode: 'refCode',
-  refCodeBy: 'refCodeBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   points: 'points',
-  percentage: 'percentage',
+  refCodeBy: 'refCodeBy',
   refLogId: 'refLogId',
+  percentage: 'percentage',
   userCouponId: 'userCouponId'
 };
 
@@ -163,8 +163,6 @@ exports.Prisma.RefLogScalarFieldEnum = {
 exports.Prisma.EventScalarFieldEnum = {
   id: 'id',
   title: 'title',
-  slug: 'slug',
-  thumbnail: 'thumbnail',
   category: 'category',
   location: 'location',
   venue: 'venue',
@@ -173,7 +171,9 @@ exports.Prisma.EventScalarFieldEnum = {
   time: 'time',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  promotorId: 'promotorId'
+  promotorId: 'promotorId',
+  thumbnail: 'thumbnail',
+  slug: 'slug'
 };
 
 exports.Prisma.ReviewsScalarFieldEnum = {
@@ -201,9 +201,9 @@ exports.Prisma.TicketScalarFieldEnum = {
   id: 'id',
   category: 'category',
   price: 'price',
-  quantity: 'quantity',
   eventId: 'eventId',
-  orderDetailId: 'orderDetailId'
+  orderDetailId: 'orderDetailId',
+  quantity: 'quantity'
 };
 
 exports.Prisma.OrderDetailScalarFieldEnum = {
