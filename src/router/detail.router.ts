@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { EventDetailController } from "../controller/detail.controller";
 import { asyncHandler } from "../utils/asyncHandler";
+import { verifyToken } from "../middleware/verify";
 
 export class EventDetailRouter {
   public router: Router;
@@ -16,8 +17,21 @@ export class EventDetailRouter {
     this.router.get("/", asyncHandler(this.eventDetailController.getAllEvents));
 
     this.router.get(
+      "/search",
+      asyncHandler(this.eventDetailController.searchEvents)
+    );
+
+    // Hapus verifyToken dari sini untuk akses publik
+    this.router.get(
       "/slug/:slug",
       asyncHandler(this.eventDetailController.getEventBySlug)
+    );
+
+    // Tambahkan route untuk ticket SEBELUM /:id
+    this.router.get(
+      "/ticket/:id",
+      verifyToken, // Ticket tetap perlu verifikasi
+      asyncHandler(this.eventDetailController.getTicketById)
     );
 
     this.router.get(

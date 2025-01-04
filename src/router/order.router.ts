@@ -16,10 +16,18 @@ export class OrderRouter {
   private initializeRoutes() {
     // Update route handlers with proper Request typing
     this.router.post(
-      "/",
+      "/", // ini akan menjadi /api/orders
       verifyTokenUser,
       async (req: Request<{}, {}, OrderRequest>, res: Response) => {
         await this.orderController.createOrder(req, res);
+      }
+    );
+
+    this.router.get(
+      "/check-user-coupon",
+      verifyTokenUser,
+      async (req: Request, res: Response) => {
+        await this.orderController.checkUserCoupon(req, res);
       }
     );
 
@@ -44,6 +52,21 @@ export class OrderRouter {
       verifyTokenUser,
       async (req: Request, res: Response) => {
         await this.orderController.updateOrderStatus(req, res);
+      }
+    );
+
+    this.router.get(
+      "/coupon-count/:eventId",
+      verifyTokenUser,
+      async (req: Request, res: Response) => {
+        await this.orderController.getCouponCount(req, res);
+      }
+    );
+    this.router.get(
+      "/check-buy-event/:eventId",
+      verifyTokenUser,
+      async (req: Request, res: Response) => {
+        await this.orderController.checkUserAllowedBuyEvent(req, res);
       }
     );
   }

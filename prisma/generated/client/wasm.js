@@ -18,11 +18,11 @@ exports.$Enums = {}
 
 /**
  * Prisma Client JS version: 6.1.0
- * Query Engine version: 5dbef10bdbfb579e07d35cc85fb1518d357cb99e
+ * Query Engine version: 11f085a2012c0f4778414c8db2651556ee0ef959
  */
 Prisma.prismaVersion = {
   client: "6.1.0",
-  engine: "5dbef10bdbfb579e07d35cc85fb1518d357cb99e"
+  engine: "11f085a2012c0f4778414c8db2651556ee0ef959"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -182,7 +182,8 @@ exports.Prisma.ReviewsScalarFieldEnum = {
   rating: 'rating',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  userId: 'userId'
+  userId: 'userId',
+  eventId: 'eventId'
 };
 
 exports.Prisma.OrderScalarFieldEnum = {

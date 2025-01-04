@@ -3,144 +3,193 @@ import prisma from "../prisma";
 import { OrderPayload } from "../custom";
 
 export class OrderController {
-  async createOrder(req: Request<{}, {}, OrderPayload>, res: Response) {
+  // src/controller/order.controller.ts
+  // src/controller/order.controller.ts
+  async createOrder(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
-      if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
       const {
+        eventId,
         ticketId,
         quantity,
         totalPrice,
         finalPrice,
-        pointsRedeemed,
-        percentage,
+        usePoints,
+        useCoupon,
       } = req.body;
+      const userId = req.user?.id;
 
-      // Validate inputs
+      if (!eventId || !ticketId || !quantity || !totalPrice || !userId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Check ticket availability
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
-        include: { event: true },
       });
 
-      if (!ticket) {
-        return res.status(404).json({ message: "Ticket not found" });
-      }
-
-      if (ticket.quantity < quantity) {
-        return res.status(400).json({ message: "Insufficient tickets" });
-      }
-
-      if (quantity > 4) {
+      if (!ticket || ticket.quantity < quantity) {
         return res
           .status(400)
-          .json({ message: "Maximum 4 tickets per purchase" });
+          .json({ message: "Insufficient ticket quantity" });
       }
 
+      // Count users who used coupon for this event
+      const couponUsersCount = await prisma.order.count({
+        where: {
+          eventId,
+          details: {
+            some: {
+              UserCoupon: { isNot: null },
+            },
+          },
+        },
+      });
+
+      const findHistoryUserCoupon = await prisma.userCoupon.findFirst({
+        where: {
+          User: {
+            some: {
+              id: userId,
+            },
+          },
+          isRedeem: false,
+        },
+        include: {
+          User: true,
+        },
+      });
+
+      console.log(findHistoryUserCoupon, "findHistoryUserCoupon");
       // Start transaction
-      const result = await prisma.$transaction(async (tx) => {
-        // Get user with coupon info
-        const user = await tx.user.findUnique({
-          where: { id: userId },
-          include: { usercoupon: true },
-        });
-
-        if (!user) {
-          throw new Error("User not found");
-        }
-
-        // Validate points redemption
-        if (pointsRedeemed) {
-          if (pointsRedeemed > user.points) {
-            throw new Error("Insufficient points");
-          }
-          if (pointsRedeemed % 10000 !== 0) {
-            throw new Error("Points must be in multiples of 10,000");
-          }
-        }
-
-        // Calculate expected price
-        let expectedPrice = totalPrice;
-        if (percentage && user.usercoupon) {
-          const currentDate = new Date();
-          const expiryDate = new Date(user.usercoupon.expiredAt);
-
-          if (currentDate < expiryDate) {
-            expectedPrice -= totalPrice * (percentage / 100);
-          }
-        }
-        if (pointsRedeemed) {
-          expectedPrice -= pointsRedeemed;
-        }
-
-        // Verify final price
-        if (Math.abs(expectedPrice - finalPrice) > 0.01) {
-          throw new Error("Price mismatch");
-        }
-
-        // Create order
-        const order = await tx.order.create({
-          data: {
-            totalPrice,
-            finalPrice,
-            status: "PENDING",
-            user: { connect: { id: userId } },
-            event: { connect: { id: ticket.eventId! } },
-            details: {
-              create: {
-                quantity,
-                tickets: { connect: { id: ticketId } },
-                UserCoupon: user.userCouponId
-                  ? {
-                      connect: { id: user.userCouponId },
-                    }
-                  : undefined,
-              },
-            },
-          },
-          include: {
-            details: {
-              include: { tickets: true },
-            },
-          },
-        });
-
+      const order = await prisma.$transaction(async (tx) => {
         // Update ticket quantity
         await tx.ticket.update({
           where: { id: ticketId },
           data: { quantity: { decrement: quantity } },
         });
 
-        // Update user points if redeemed
-        if (pointsRedeemed) {
+        // Handle points redemption
+        if (usePoints) {
           await tx.user.update({
             where: { id: userId },
-            data: { points: { decrement: pointsRedeemed } },
+            data: { points: { decrement: 10000 } },
           });
         }
 
-        return order;
+        // Handle coupon usage
+        let userCouponId = null;
+        if (useCoupon && couponUsersCount < 10) {
+          const user = await tx.user.findUnique({
+            where: { id: userId },
+            include: { usercoupon: true },
+          });
+
+          if (user?.usercoupon) {
+            userCouponId = user.usercoupon.id;
+            await tx.userCoupon.update({
+              where: { id: userCouponId },
+              data: { isRedeem: true },
+            });
+          }
+        }
+
+        // Create order
+        return await tx.order.create({
+          data: {
+            eventId,
+            userId,
+            totalPrice,
+            finalPrice,
+            status: "PENDING",
+            details: {
+              create: {
+                quantity,
+                userCouponId,
+                tickets: {
+                  connect: { id: ticketId },
+                },
+              },
+            },
+          },
+          include: {
+            details: {
+              include: {
+                tickets: true,
+              },
+            },
+          },
+        });
       });
 
       res.status(201).json({
         message: "Order created successfully",
-        orderId: result.id,
+        data: order,
       });
     } catch (error) {
       console.error("Create order error:", error);
       res.status(500).json({
-        message:
-          error instanceof Error ? error.message : "Failed to create order",
-        orderId: 0,
+        message: "Failed to create order",
+        error: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  }
+
+  async getCouponCount(req: Request, res: Response) {
+    try {
+      const eventId = Number(req.params.eventId);
+
+      const count = await prisma.order.count({
+        where: {
+          eventId,
+          details: {
+            some: {
+              UserCoupon: { isNot: null },
+            },
+          },
+        },
+      });
+
+      res.status(200).json({ count });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get coupon count" });
+    }
+  }
+
+  async checkUserCoupon(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      const findHistoryUserCoupon = await prisma.order.findFirst({
+        where: {
+          userId,
+          details: {
+            some: {
+              userCouponId: {
+                gt: 0,
+              },
+            },
+          },
+        },
+      });
+
+      console.log(findHistoryUserCoupon, "findHistoryUserCoupon");
+
+      if (!findHistoryUserCoupon) {
+        return res.status(200).json({ canUseCoupon: true });
+      } else {
+        return res.status(200).json({ canUseCoupon: false });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get coupon count" });
     }
   }
 
   async getOrder(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
-      const orderId = Number(req.params.id);
+      const { id } = req.params;
 
+      let orderId = Number(id);
       const order = await prisma.order.findFirst({
         where: { id: orderId, userId },
         include: {
@@ -153,6 +202,36 @@ export class OrderController {
 
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
+      }
+
+      res.status(200).json(order);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch order" });
+    }
+  }
+
+  async checkUserAllowedBuyEvent(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const eventId = Number(req.params.eventId);
+
+      const order = await prisma.order.findFirst({
+        where: {
+          userId,
+          event: {
+            id: eventId,
+          },
+        },
+        include: {
+          event: true,
+          details: {
+            include: { tickets: true },
+          },
+        },
+      });
+
+      if (order) {
+        return res.status(400).json({ message: "User has been buy event" });
       }
 
       res.status(200).json(order);
