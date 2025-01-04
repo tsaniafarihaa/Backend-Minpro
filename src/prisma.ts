@@ -1,3 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client"; // Adjust relative path as needed
 
-export default new PrismaClient({ log: ["query", "info", "error", "warn"] });
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
+
+export default prisma;

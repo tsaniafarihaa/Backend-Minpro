@@ -25,10 +25,19 @@ export class AuthRouter {
    //Untuk Session sugan bisa, bisa mantap
    this.router.get("/session", verifyTokenUser,verifyTokenPromotor, this.authController.getSession)
 
-   //Untuk Verify
+   //untuk lupa password dan ganti password si user
+   this.router.post("/forgotPassword", this.authController.forgotPasswordUser)
+   this.router.post("/resetPassword",this.authController.resetPasswordUser)
+
+   //untuk lupa password dan ganti password si promotor
+   this.router.post("/forgotPasswordPromotor", this.authController.forgotPasswordPromotor)
+   this.router.post("/resetPasswordPromotor", this.authController.resetPasswordPromotor)
+
+   //Untuk Verify Promotor
    this.router.post("/verifypromotor/:token", this.authController.verifyPromotor)
    this.router.patch("/verifypromotor/:token", this.authController.verifyPromotor)
 
+  // Untuk Verify User
    this.router.patch("/verifyuser/:token", this.authController.verifyUser)
    this.router.post("/verifyuser/:token", this.authController.verifyUser)
 
