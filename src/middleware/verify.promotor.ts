@@ -22,7 +22,19 @@ export const verifyTokenPromotor = (
     const verifiedPromotor = verify(token, process.env.JWT_KEY!);
     req.promotor = verifiedPromotor as PromotorPayload;
 
-    next();
+    if (!token) {
+      res.status(401).json({ message: "Invalid token format" });
+      return;
+    }
+
+    try {
+      const verifiedPromotor = verify(token, process.env.JWT_KEY!);
+      req.promotor = verifiedPromotor as PromotorPayload;
+      next();
+    } catch (verifyError) {
+      res.status(401).json({ message: "Invalid token" });
+      return;
+    }
   } catch (err) {
     console.error("Token verification error:", err);
 
