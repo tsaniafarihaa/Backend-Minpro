@@ -22,8 +22,10 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: `${base_url_fe}`,
+    origin: "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
