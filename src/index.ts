@@ -33,6 +33,7 @@ const userRouter = new UserRouter();
 const promotorRouter = new PromotorRouter();
 const orderRouter = new OrderRouter();
 const promotorEventsRouter = new PromotorEventsRouter();
+const dashboardRouter = new DashboardRouter
 
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
@@ -40,6 +41,7 @@ app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", eventDetailRouter.getRouter());
 app.use("/api/events", eventRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter())
 app.use("/api/events/edit", editEventRouter.getRouter());
 app.use("/api/promotors/events", promotorEventsRouter.getRouter());
 app.use("/api/orders", orderRouter.getRouter());
