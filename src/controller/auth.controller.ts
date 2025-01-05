@@ -359,7 +359,7 @@ export class AuthController {
           points: user.points,
           refCode: user.refCode,
           percentage: user.percentage,
-          userCoupon: user.usercoupon?.expiredAt,
+          expiredAt : user.usercoupon?.expiredAt,
         });
       } else {
         res.status(403).json({ message: "Forbidden: Unknown token type" });

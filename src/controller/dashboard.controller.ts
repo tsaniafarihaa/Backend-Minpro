@@ -4,162 +4,161 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export class DashboardController {
-    async getEventActive(req: Request, res: Response): Promise<void> {
-        try {
-          const promotorId = req.promotor?.id;
-    
-          if (!promotorId) {
-            res.status(400).json({ error: "Invalid promotor ID" });
-            return;
-          }
-    
-          const now = new Date();
-          const activeEvent = await prisma.event.count({
-            where: {
-              promotorId: promotorId,
-              date: {
-                gt: now,
-              },
-            },
-          });
-    
-          res.status(200).json({ activeEvents: activeEvent }); // Updated key
-        } catch (error) {
-          console.error("Error fetching active events:", error);
-          res.status(500).json({ error: "Failed to fetch active events" });
-        }
-      }
-    
-      async getEventDeactive(req: Request, res: Response): Promise<void> {
-        try {
-          const promotorId = req.promotor?.id;
-    
-          if (!promotorId) {
-            res.status(400).json({ error: "Invalid promotor ID" });
-            return;
-          }
-    
-          const now = new Date();
-          const deactiveEvent = await prisma.event.count({
-            where: {
-              promotorId: promotorId,
-              date: {
-                lt: now,
-              },
-            },
-          });
-    
-          res.status(200).json({ deactiveEvents: deactiveEvent }); // Updated key
-        } catch (error) {
-          console.error("Error fetching deactive events:", error);
-          res.status(500).json({ error: "Failed to fetch deactive events" });
-        }
-      }
-    
-      async getTotalEvent(req: Request, res: Response): Promise<void> {
-        try {
-          const promotorId = req.promotor?.id;
-    
-          if (!promotorId) {
-            res.status(400).json({ error: "Invalid promotor ID" });
-            return;
-          }
-    
-          const totalEvent = await prisma.event.count({
-            where: {
-              promotorId: promotorId,
-            },
-          });
-    
-          res.status(200).json({ totalEvents: totalEvent }); // Updated key
-        } catch (error) {
-          console.error("Error fetching total events:", error);
-          res.status(500).json({ error: "Failed to fetch total events" });
-        }
-      }
-      async getTotalRevenue(req: Request, res: Response): Promise<void> {
-        try {
-          const promotorId = req.promotor?.id;
-      
-          if (!promotorId) {
-            res.status(400).json({ error: "Invalid promotor ID" });
-            return;
-          }
-      
-          const totalRevenue = await prisma.order.aggregate({
-            _sum: {
-              finalPrice: true, 
-            },
-            where: {
-              status: "PAID", // HITUNG YG PAID SAJA TESTING
-              event: {
-                promotorId: promotorId, 
-              },
-            },
-          });
-      
-          res.status(200).json({ totalRevenue: totalRevenue._sum.finalPrice || 0 });
-        } catch (error) {
-          console.error("Error fetching total revenue:", error);
-          res.status(500).json({ error: "Failed to fetch total revenue" });
-        }
+  async getEventActive(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
       }
 
-      async getPromotorEvents(req: Request, res: Response): Promise<void> {
-        try {
-          const promotorId = req.promotor?.id;
-      
-          if (!promotorId) {
-            res.status(400).json({ error: "Invalid promotor ID" });
-            return;
-          }
-      
-          const events = await prisma.event.findMany({
-            where: { promotorId: promotorId },
-            include: {
-              orders: true, // Include orders to count those with "PAID" status
-            },
-          });
-      
-          const formattedEvents = events.map((event) => {
-            // Count the number of PAID orders for tickets sold
-            const ticketsSold = event.orders.filter(
-              (order) => order.status === "PAID"
-            ).length;
-      
-            // Calculate total revenue from PAID orders
-            const totalRevenue = event.orders
-              .filter((order) => order.status === "PAID")
-              .reduce((sum, order) => sum + (order.finalPrice || 0), 0);
-      
-       
-            // const profitPercentage = 20; // Static persenan
-            const profit = (totalRevenue) / 100;
-      
-            return {
-              id: event.id,
-              title: event.title,
-              category: event.category,
-              description: event.description,
-              date: event.date,
-              location: event.venue,
-              ticketsSold, // Simply the count of PAID orders
-              revenue: `Rp ${totalRevenue.toLocaleString("id-ID")}`,
-              profit: `Rp ${profit.toLocaleString("id-ID")}`,
-              profitPercentage: `${profit}%`,
-              thumbnail: event.thumbnail,
-            };
-          });
-      
-          res.status(200).json({ events: formattedEvents });
-        } catch (error) {
-          console.error("Error fetching promotor events:", error);
-          res.status(500).json({ error: "Failed to fetch promotor events" });
-        }
-      }
-      
-      
+      const now = new Date();
+      const activeEvent = await prisma.event.count({
+        where: {
+          promotorId: promotorId,
+          date: {
+            gt: now,
+          },
+        },
+      });
+
+      res.status(200).json({ activeEvents: activeEvent }); // Updated key
+    } catch (error) {
+      console.error("Error fetching active events:", error);
+      res.status(500).json({ error: "Failed to fetch active events" });
+    }
   }
+
+  async getEventDeactive(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
+      }
+
+      const now = new Date();
+      const deactiveEvent = await prisma.event.count({
+        where: {
+          promotorId: promotorId,
+          date: {
+            lt: now,
+          },
+        },
+      });
+
+      res.status(200).json({ deactiveEvents: deactiveEvent }); // Updated key
+    } catch (error) {
+      console.error("Error fetching deactive events:", error);
+      res.status(500).json({ error: "Failed to fetch deactive events" });
+    }
+  }
+
+  async getTotalEvent(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
+      }
+
+      const totalEvent = await prisma.event.count({
+        where: {
+          promotorId: promotorId,
+        },
+      });
+
+      res.status(200).json({ totalEvents: totalEvent }); // Updated key
+    } catch (error) {
+      console.error("Error fetching total events:", error);
+      res.status(500).json({ error: "Failed to fetch total events" });
+    }
+  }
+  async getTotalRevenue(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
+      }
+
+      const totalRevenue = await prisma.order.aggregate({
+        _sum: {
+          finalPrice: true,
+        },
+        where: {
+          status: "PAID", // HITUNG YG PAID SAJA TESTING
+          event: {
+            promotorId: promotorId,
+          },
+        },
+      });
+
+      res.status(200).json({ totalRevenue: totalRevenue._sum.finalPrice || 0 });
+    } catch (error) {
+      console.error("Error fetching total revenue:", error);
+      res.status(500).json({ error: "Failed to fetch total revenue" });
+    }
+  }
+
+  async getPromotorEvents(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
+      }
+
+      const events = await prisma.event.findMany({
+        where: { promotorId: promotorId },
+        include: {
+          orders: true, // Include orders to count those with "PAID" status
+        },
+        orderBy: {
+          date: "desc", // Ordering by date, from the most recent to the oldest
+        },
+      });
+
+      const formattedEvents = events.map((event) => {
+        // Count the number of PAID orders for tickets sold
+        const ticketsSold = event.orders.filter(
+          (order) => order.status === "PAID"
+        ).length;
+
+        // Calculate total revenue from PAID orders
+        const totalRevenue = event.orders
+          .filter((order) => order.status === "PAID")
+          .reduce((sum, order) => sum + (order.finalPrice || 0), 0);
+
+        const profit = (totalRevenue * 20) / 100; // Calculating 20% profit
+
+        return {
+          id: event.id,
+          title: event.title,
+          category: event.category,
+          description: event.description,
+          date: event.date,
+          location: event.venue,
+          ticketsSold, // Simply the count of PAID orders
+          revenue: `Rp ${totalRevenue.toLocaleString("id-ID")}`,
+          profit: `Rp ${profit.toLocaleString("id-ID")}`,
+          profitPercentage: `20%`, // Displaying static profit percentage of 20%
+          thumbnail: event.thumbnail,
+        };
+      });
+
+      res.status(200).json({ events: formattedEvents });
+    } catch (error) {
+      console.error("Error fetching promotor events:", error);
+      res.status(500).json({ error: "Failed to fetch promotor events" });
+    }
+  }
+}
 
   //   async getTotalTransaction(req: Request, res: Response) {
   //     try {
