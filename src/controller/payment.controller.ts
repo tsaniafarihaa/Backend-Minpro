@@ -1,4 +1,3 @@
-// src/controller/payment.controller.ts
 import { Request, Response } from "express";
 import prisma from "../prisma";
 import { midtransService } from "../services/midtrans";

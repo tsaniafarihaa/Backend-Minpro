@@ -3,8 +3,6 @@ import prisma from "../prisma";
 import { OrderPayload } from "../custom";
 
 export class OrderController {
-  // src/controller/order.controller.ts
-  // src/controller/order.controller.ts
   async createOrder(req: Request, res: Response) {
     try {
       const {
@@ -15,16 +13,20 @@ export class OrderController {
         finalPrice,
         usePoints,
         useCoupon,
+        status, // Add status to destructured parameters
       } = req.body;
       const userId = req.user?.id;
 
-      if (!eventId || !ticketId || !quantity || !totalPrice || !userId) {
+      if (!eventId || !ticketId || !quantity || userId === undefined) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
       // Check ticket availability
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
+        include: {
+          event: true, // Include event to check if it's free
+        },
       });
 
       if (!ticket || ticket.quantity < quantity) {
@@ -33,33 +35,10 @@ export class OrderController {
           .json({ message: "Insufficient ticket quantity" });
       }
 
-      // Count users who used coupon for this event
-      const couponUsersCount = await prisma.order.count({
-        where: {
-          eventId,
-          details: {
-            some: {
-              UserCoupon: { isNot: null },
-            },
-          },
-        },
-      });
+      const isFreeTicket = ticket.price === 0;
+      // Use provided status or determine based on whether it's a free ticket
+      const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
-      const findHistoryUserCoupon = await prisma.userCoupon.findFirst({
-        where: {
-          User: {
-            some: {
-              id: userId,
-            },
-          },
-          isRedeem: false,
-        },
-        include: {
-          User: true,
-        },
-      });
-
-      console.log(findHistoryUserCoupon, "findHistoryUserCoupon");
       // Start transaction
       const order = await prisma.$transaction(async (tx) => {
         // Update ticket quantity
@@ -68,39 +47,52 @@ export class OrderController {
           data: { quantity: { decrement: quantity } },
         });
 
-        // Handle points redemption
-        if (usePoints) {
+        // Handle points redemption if not a free ticket
+        if (!isFreeTicket && usePoints) {
           await tx.user.update({
             where: { id: userId },
             data: { points: { decrement: 10000 } },
           });
         }
 
-        // Handle coupon usage
+        // Handle coupon usage if not a free ticket
         let userCouponId = null;
-        if (useCoupon && couponUsersCount < 10) {
-          const user = await tx.user.findUnique({
-            where: { id: userId },
-            include: { usercoupon: true },
+        if (!isFreeTicket && useCoupon) {
+          const couponUsersCount = await tx.order.count({
+            where: {
+              eventId,
+              details: {
+                some: {
+                  UserCoupon: { isNot: null },
+                },
+              },
+            },
           });
 
-          if (user?.usercoupon) {
-            userCouponId = user.usercoupon.id;
-            await tx.userCoupon.update({
-              where: { id: userCouponId },
-              data: { isRedeem: true },
+          if (couponUsersCount < 10) {
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+              include: { usercoupon: true },
             });
+
+            if (user?.usercoupon) {
+              userCouponId = user.usercoupon.id;
+              await tx.userCoupon.update({
+                where: { id: userCouponId },
+                data: { isRedeem: true },
+              });
+            }
           }
         }
 
-        // Create order
+        // Create order with proper status
         return await tx.order.create({
           data: {
             eventId,
             userId,
             totalPrice,
             finalPrice,
-            status: "PENDING",
+            status: orderStatus, // Use the determined status
             details: {
               create: {
                 quantity,
