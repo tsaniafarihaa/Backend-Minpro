@@ -9,6 +9,10 @@ export class EditEventController {
       const eventId = parseInt(req.params.id);
       const promotorId = req.promotor?.id;
 
+      console.log("Request params:", req.params);
+      console.log("Request headers:", req.headers);
+      console.log("Promotor from token:", req.promotor);
+
       if (!promotorId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -23,6 +27,8 @@ export class EditEventController {
         },
       });
 
+      console.log("Found event:", event);
+
       if (!event) {
         return res
           .status(404)
@@ -31,7 +37,7 @@ export class EditEventController {
 
       return res.status(200).json(event);
     } catch (error) {
-      console.error("Get event for edit error:", error);
+      console.error("Detailed error:", error);
       return res.status(500).json({
         message: "Failed to fetch event",
         error: error instanceof Error ? error.message : "Unknown error",
@@ -43,6 +49,12 @@ export class EditEventController {
     try {
       const eventId = parseInt(req.params.id);
       const promotorId = req.promotor?.id;
+
+      console.log("Updating event with ID:", eventId);
+      console.log("Promotor ID:", promotorId);
+      console.log("Request body:", req.body);
+      console.log("Request file:", req.file);
+      console.log("Tickets data received:", req.body.tickets);
 
       if (!promotorId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -75,8 +87,37 @@ export class EditEventController {
       const eventTime = new Date(eventDate);
       eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Parse tickets data
-      const tickets = JSON.parse(req.body.tickets);
+      // Parse tickets data safely
+      let tickets;
+      try {
+        tickets =
+          typeof req.body.tickets === "string"
+            ? JSON.parse(req.body.tickets)
+            : req.body.tickets;
+
+        // Validate tickets structure
+        if (!Array.isArray(tickets)) {
+          throw new Error("Tickets must be an array");
+        }
+
+        // Validate each ticket
+        tickets.forEach((ticket) => {
+          if (
+            !ticket.id ||
+            !ticket.category ||
+            typeof ticket.price === "undefined" ||
+            typeof ticket.quantity === "undefined"
+          ) {
+            throw new Error("Invalid ticket structure");
+          }
+        });
+      } catch (error) {
+        console.error("Error parsing tickets:", error);
+        return res.status(400).json({
+          message: "Invalid tickets format",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
 
       // Update event using transaction
       const updatedEvent = await prisma.$transaction(async (prisma) => {
@@ -93,6 +134,9 @@ export class EditEventController {
             time: eventTime,
             thumbnail: thumbnailUrl,
           },
+          include: {
+            tickets: true,
+          },
         });
 
         // Update tickets
@@ -101,14 +145,16 @@ export class EditEventController {
             where: { id: ticket.id },
             data: {
               category: ticket.category,
-              price: ticket.price,
-              quantity: ticket.quantity,
+              price: Number(ticket.price),
+              quantity: Number(ticket.quantity),
             },
           });
         }
 
         return event;
       });
+
+      console.log("Updated event:", updatedEvent);
 
       return res.status(200).json({
         message: "Event updated successfully",
@@ -119,6 +165,7 @@ export class EditEventController {
       return res.status(500).json({
         message: "Failed to update event",
         error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
       });
     }
   }
