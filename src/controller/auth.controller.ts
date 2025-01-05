@@ -10,8 +10,6 @@ import { generateReferalCode } from "../utils/generateReferalCode";
 import { transporter } from "../services/mailer";
 import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
-import { supabase } from "src/supabase";
-import { randomBytes } from "crypto";
 
 const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
 
