@@ -125,12 +125,12 @@ exports.Prisma.UserScalarFieldEnum = {
   avatar: 'avatar',
   isVerify: 'isVerify',
   refCode: 'refCode',
-  refCodeBy: 'refCodeBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   points: 'points',
-  percentage: 'percentage',
+  refCodeBy: 'refCodeBy',
   refLogId: 'refLogId',
+  percentage: 'percentage',
   userCouponId: 'userCouponId'
 };
 
@@ -163,17 +163,18 @@ exports.Prisma.RefLogScalarFieldEnum = {
 exports.Prisma.EventScalarFieldEnum = {
   id: 'id',
   title: 'title',
-  slug: 'slug',
-  thumbnail: 'thumbnail',
   category: 'category',
   location: 'location',
   venue: 'venue',
   description: 'description',
   date: 'date',
   time: 'time',
+  eventStatus: 'eventStatus',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  promotorId: 'promotorId'
+  promotorId: 'promotorId',
+  thumbnail: 'thumbnail',
+  slug: 'slug'
 };
 
 exports.Prisma.ReviewsScalarFieldEnum = {
@@ -182,7 +183,8 @@ exports.Prisma.ReviewsScalarFieldEnum = {
   rating: 'rating',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  userId: 'userId'
+  userId: 'userId',
+  eventId: 'eventId'
 };
 
 exports.Prisma.OrderScalarFieldEnum = {
@@ -201,9 +203,9 @@ exports.Prisma.TicketScalarFieldEnum = {
   id: 'id',
   category: 'category',
   price: 'price',
-  quantity: 'quantity',
   eventId: 'eventId',
-  orderDetailId: 'orderDetailId'
+  orderDetailId: 'orderDetailId',
+  quantity: 'quantity'
 };
 
 exports.Prisma.OrderDetailScalarFieldEnum = {
@@ -239,6 +241,11 @@ exports.Location = exports.$Enums.Location = {
   Bali: 'Bali',
   Surabaya: 'Surabaya',
   Jakarta: 'Jakarta'
+};
+
+exports.EventStatus = exports.$Enums.EventStatus = {
+  ACTIVE: 'ACTIVE',
+  SUCCED: 'SUCCED'
 };
 
 exports.Status = exports.$Enums.Status = {

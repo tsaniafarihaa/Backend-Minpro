@@ -1,7 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-
-
+  provider      = "prisma-client-js"
+  output        = "./generated/client"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -29,6 +29,7 @@ enum Status {
   CANCELED
   PENDING
 }
+
 
 model User {
   id         String   @id @default(uuid())
@@ -88,18 +89,18 @@ model RefLog {
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   title       String
-  slug        String   @unique
-  thumbnail   String?  @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
+  slug        String       @unique
+  thumbnail   String?      @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
   category    Category
   location    Location
   venue       String
   description String
   date        DateTime
   time        DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   promotorId String?
   promotor   Promotor? @relation(fields: [promotorId], references: [id], onDelete: Cascade)

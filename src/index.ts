@@ -8,9 +8,10 @@ import { eventDetailRouter } from "./router/detail.router";
 import cors from "cors";
 import "dotenv/config";
 import { OAuthRouter } from "./router/oauth.router";
+import { DashboardRouter } from "./router/dashboard.router";
 
 const PORT: number = 8000;
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE
+
 
 const app = express();
 app.use(express.json());
@@ -29,11 +30,13 @@ const authRouter = new AuthRouter();
 const userRouter = new UserRouter();
 const promotorRouter = new PromotorRouter();
 const oauthRouter = new OAuthRouter()
+const dashboardRouter = new DashboardRouter()
 
 app.use("/api/auth", authRouter.getRouter());
 app.use("/api/oauth",oauthRouter.getRouter())
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter())
 app.use("/api/events", eventDetailRouter.getRouter());
 app.use("/api/events", eventRouter.getRouter());
 app.get("/api", (req, res) => {
