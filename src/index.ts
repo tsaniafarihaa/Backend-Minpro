@@ -12,6 +12,7 @@ import cors from "cors";
 import "dotenv/config";
 import { OrderRouter } from "./router/order.router";
 import { reviewRouter } from "./router/review.router";
+import { DashboardRouter } from "./router/dashboard.router";
 
 const PORT: number = 8000;
 const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
@@ -35,6 +36,7 @@ const userRouter = new UserRouter();
 const promotorRouter = new PromotorRouter();
 const orderRouter = new OrderRouter();
 const promotorEventsRouter = new PromotorEventsRouter();
+const dashboardRouter = new DashboardRouter
 
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
@@ -44,6 +46,7 @@ app.use("/api/events", eventDetailRouter.getRouter());
 app.use("/api/events", eventRouter.getRouter());
 app.use("/api/events/edit", editEventRouter.getRouter());
 app.use("/api/promotors/events", promotorEventsRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter())
 app.use("/api/orders", orderRouter.getRouter());
 app.use("/api/reviews", reviewRouter.getRouter());
 app.use("/api/payment", paymentRouter);
