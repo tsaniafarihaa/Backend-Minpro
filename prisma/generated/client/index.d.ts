@@ -91,14 +91,6 @@ export const Status: {
 
 export type Status = (typeof Status)[keyof typeof Status]
 
-
-export const EventStatus: {
-  ACTIVE: 'ACTIVE',
-  SUCCED: 'SUCCED'
-};
-
-export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]
-
 }
 
 export type Category = $Enums.Category
@@ -112,10 +104,6 @@ export const Location: typeof $Enums.Location
 export type Status = $Enums.Status
 
 export const Status: typeof $Enums.Status
-
-export type EventStatus = $Enums.EventStatus
-
-export const EventStatus: typeof $Enums.EventStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -6010,7 +5998,6 @@ export namespace Prisma {
     description: string | null
     date: Date | null
     time: Date | null
-    eventStatus: $Enums.EventStatus | null
     createdAt: Date | null
     updatedAt: Date | null
     promotorId: string | null
@@ -6027,7 +6014,6 @@ export namespace Prisma {
     description: string | null
     date: Date | null
     time: Date | null
-    eventStatus: $Enums.EventStatus | null
     createdAt: Date | null
     updatedAt: Date | null
     promotorId: string | null
@@ -6044,7 +6030,6 @@ export namespace Prisma {
     description: number
     date: number
     time: number
-    eventStatus: number
     createdAt: number
     updatedAt: number
     promotorId: number
@@ -6071,7 +6056,6 @@ export namespace Prisma {
     description?: true
     date?: true
     time?: true
-    eventStatus?: true
     createdAt?: true
     updatedAt?: true
     promotorId?: true
@@ -6088,7 +6072,6 @@ export namespace Prisma {
     description?: true
     date?: true
     time?: true
-    eventStatus?: true
     createdAt?: true
     updatedAt?: true
     promotorId?: true
@@ -6105,7 +6088,6 @@ export namespace Prisma {
     description?: true
     date?: true
     time?: true
-    eventStatus?: true
     createdAt?: true
     updatedAt?: true
     promotorId?: true
@@ -6209,7 +6191,6 @@ export namespace Prisma {
     description: string
     date: Date
     time: Date
-    eventStatus: $Enums.EventStatus
     createdAt: Date
     updatedAt: Date
     promotorId: string | null
@@ -6245,7 +6226,6 @@ export namespace Prisma {
     description?: boolean
     date?: boolean
     time?: boolean
-    eventStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     promotorId?: boolean
@@ -6267,7 +6247,6 @@ export namespace Prisma {
     description?: boolean
     date?: boolean
     time?: boolean
-    eventStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     promotorId?: boolean
@@ -6285,7 +6264,6 @@ export namespace Prisma {
     description?: boolean
     date?: boolean
     time?: boolean
-    eventStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     promotorId?: boolean
@@ -6321,7 +6299,6 @@ export namespace Prisma {
       description: string
       date: Date
       time: Date
-      eventStatus: $Enums.EventStatus
       createdAt: Date
       updatedAt: Date
       promotorId: string | null
@@ -6732,7 +6709,6 @@ export namespace Prisma {
     readonly description: FieldRef<"Event", 'String'>
     readonly date: FieldRef<"Event", 'DateTime'>
     readonly time: FieldRef<"Event", 'DateTime'>
-    readonly eventStatus: FieldRef<"Event", 'EventStatus'>
     readonly createdAt: FieldRef<"Event", 'DateTime'>
     readonly updatedAt: FieldRef<"Event", 'DateTime'>
     readonly promotorId: FieldRef<"Event", 'String'>
@@ -11407,7 +11383,6 @@ export namespace Prisma {
     description: 'description',
     date: 'date',
     time: 'time',
-    eventStatus: 'eventStatus',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     promotorId: 'promotorId',
@@ -11585,20 +11560,6 @@ export namespace Prisma {
    * Reference to a field of type 'Location[]'
    */
   export type ListEnumLocationFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Location[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'EventStatus'
-   */
-  export type EnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus'>
-    
-
-
-  /**
-   * Reference to a field of type 'EventStatus[]'
-   */
-  export type ListEnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus[]'>
     
 
 
@@ -11924,7 +11885,6 @@ export namespace Prisma {
     description?: StringFilter<"Event"> | string
     date?: DateTimeFilter<"Event"> | Date | string
     time?: DateTimeFilter<"Event"> | Date | string
-    eventStatus?: EnumEventStatusFilter<"Event"> | $Enums.EventStatus
     createdAt?: DateTimeFilter<"Event"> | Date | string
     updatedAt?: DateTimeFilter<"Event"> | Date | string
     promotorId?: StringNullableFilter<"Event"> | string | null
@@ -11945,7 +11905,6 @@ export namespace Prisma {
     description?: SortOrder
     date?: SortOrder
     time?: SortOrder
-    eventStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     promotorId?: SortOrderInput | SortOrder
@@ -11970,7 +11929,6 @@ export namespace Prisma {
     description?: StringFilter<"Event"> | string
     date?: DateTimeFilter<"Event"> | Date | string
     time?: DateTimeFilter<"Event"> | Date | string
-    eventStatus?: EnumEventStatusFilter<"Event"> | $Enums.EventStatus
     createdAt?: DateTimeFilter<"Event"> | Date | string
     updatedAt?: DateTimeFilter<"Event"> | Date | string
     promotorId?: StringNullableFilter<"Event"> | string | null
@@ -11990,7 +11948,6 @@ export namespace Prisma {
     description?: SortOrder
     date?: SortOrder
     time?: SortOrder
-    eventStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     promotorId?: SortOrderInput | SortOrder
@@ -12015,7 +11972,6 @@ export namespace Prisma {
     description?: StringWithAggregatesFilter<"Event"> | string
     date?: DateTimeWithAggregatesFilter<"Event"> | Date | string
     time?: DateTimeWithAggregatesFilter<"Event"> | Date | string
-    eventStatus?: EnumEventStatusWithAggregatesFilter<"Event"> | $Enums.EventStatus
     createdAt?: DateTimeWithAggregatesFilter<"Event"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Event"> | Date | string
     promotorId?: StringNullableWithAggregatesFilter<"Event"> | string | null
@@ -12624,7 +12580,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -12644,7 +12599,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     promotorId?: string | null
@@ -12663,7 +12617,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12683,7 +12636,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     promotorId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12703,7 +12655,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     promotorId?: string | null
@@ -12719,7 +12670,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12735,7 +12685,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     promotorId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13451,13 +13400,6 @@ export namespace Prisma {
     not?: NestedEnumLocationFilter<$PrismaModel> | $Enums.Location
   }
 
-  export type EnumEventStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumEventStatusFilter<$PrismaModel> | $Enums.EventStatus
-  }
-
   export type PromotorNullableScalarRelationFilter = {
     is?: PromotorWhereInput | null
     isNot?: PromotorWhereInput | null
@@ -13482,7 +13424,6 @@ export namespace Prisma {
     description?: SortOrder
     date?: SortOrder
     time?: SortOrder
-    eventStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     promotorId?: SortOrder
@@ -13503,7 +13444,6 @@ export namespace Prisma {
     description?: SortOrder
     date?: SortOrder
     time?: SortOrder
-    eventStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     promotorId?: SortOrder
@@ -13520,7 +13460,6 @@ export namespace Prisma {
     description?: SortOrder
     date?: SortOrder
     time?: SortOrder
-    eventStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     promotorId?: SortOrder
@@ -13550,16 +13489,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLocationFilter<$PrismaModel>
     _max?: NestedEnumLocationFilter<$PrismaModel>
-  }
-
-  export type EnumEventStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.EventStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumEventStatusFilter<$PrismaModel>
-    _max?: NestedEnumEventStatusFilter<$PrismaModel>
   }
 
   export type UserNullableScalarRelationFilter = {
@@ -14157,10 +14086,6 @@ export namespace Prisma {
     set?: $Enums.Location
   }
 
-  export type EnumEventStatusFieldUpdateOperationsInput = {
-    set?: $Enums.EventStatus
-  }
-
   export type PromotorUpdateOneWithoutEventsNestedInput = {
     create?: XOR<PromotorCreateWithoutEventsInput, PromotorUncheckedCreateWithoutEventsInput>
     connectOrCreate?: PromotorCreateOrConnectWithoutEventsInput
@@ -14693,13 +14618,6 @@ export namespace Prisma {
     not?: NestedEnumLocationFilter<$PrismaModel> | $Enums.Location
   }
 
-  export type NestedEnumEventStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumEventStatusFilter<$PrismaModel> | $Enums.EventStatus
-  }
-
   export type NestedEnumCategoryWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.Category | EnumCategoryFieldRefInput<$PrismaModel>
     in?: $Enums.Category[] | ListEnumCategoryFieldRefInput<$PrismaModel>
@@ -14718,16 +14636,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLocationFilter<$PrismaModel>
     _max?: NestedEnumLocationFilter<$PrismaModel>
-  }
-
-  export type NestedEnumEventStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.EventStatus | EnumEventStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.EventStatus[] | ListEnumEventStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.EventStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumEventStatusFilter<$PrismaModel>
-    _max?: NestedEnumEventStatusFilter<$PrismaModel>
   }
 
   export type NestedEnumStatusFilter<$PrismaModel = never> = {
@@ -14967,7 +14875,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -14986,7 +14893,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -15034,7 +14940,6 @@ export namespace Prisma {
     description?: StringFilter<"Event"> | string
     date?: DateTimeFilter<"Event"> | Date | string
     time?: DateTimeFilter<"Event"> | Date | string
-    eventStatus?: EnumEventStatusFilter<"Event"> | $Enums.EventStatus
     createdAt?: DateTimeFilter<"Event"> | Date | string
     updatedAt?: DateTimeFilter<"Event"> | Date | string
     promotorId?: StringNullableFilter<"Event"> | string | null
@@ -15489,10 +15394,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-<<<<<<< HEAD
-    eventStatus?: $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -15511,10 +15412,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-<<<<<<< HEAD
-    eventStatus?: $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: Date | string
     updatedAt?: Date | string
     promotorId?: string | null
@@ -15595,10 +15492,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-<<<<<<< HEAD
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15617,10 +15510,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-<<<<<<< HEAD
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     promotorId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15638,10 +15527,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-<<<<<<< HEAD
-    eventStatus?: $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -15660,10 +15545,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-<<<<<<< HEAD
-    eventStatus?: $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: Date | string
     updatedAt?: Date | string
     promotorId?: string | null
@@ -15761,10 +15642,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-<<<<<<< HEAD
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15783,10 +15660,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-<<<<<<< HEAD
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     promotorId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15867,7 +15740,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -15886,7 +15758,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     promotorId?: string | null
@@ -15938,7 +15809,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15957,7 +15827,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     promotorId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16229,7 +16098,6 @@ export namespace Prisma {
     description: string
     date: Date | string
     time: Date | string
-    eventStatus?: $Enums.EventStatus
     createdAt?: Date | string
     updatedAt?: Date | string
     thumbnail?: string | null
@@ -16244,7 +16112,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16263,7 +16130,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16282,7 +16148,6 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     time?: DateTimeFieldUpdateOperationsInput | Date | string
-    eventStatus?: EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     thumbnail?: NullableStringFieldUpdateOperationsInput | string | null

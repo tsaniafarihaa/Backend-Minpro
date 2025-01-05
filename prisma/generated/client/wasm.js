@@ -169,7 +169,6 @@ exports.Prisma.EventScalarFieldEnum = {
   description: 'description',
   date: 'date',
   time: 'time',
-  eventStatus: 'eventStatus',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   promotorId: 'promotorId',
@@ -241,11 +240,6 @@ exports.Location = exports.$Enums.Location = {
   Bali: 'Bali',
   Surabaya: 'Surabaya',
   Jakarta: 'Jakarta'
-};
-
-exports.EventStatus = exports.$Enums.EventStatus = {
-  ACTIVE: 'ACTIVE',
-  SUCCED: 'SUCCED'
 };
 
 exports.Status = exports.$Enums.Status = {

@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "./generated/client"
+  provider      = "prisma-client-js"
+  output        = "./generated/client"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -61,11 +62,7 @@ model RefLog {
 }
 
 model Event {
-<<<<<<< HEAD
-  id          Int         @id @default(autoincrement())
-=======
   id          Int       @id @default(autoincrement())
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
   title       String
   category    Category
   location    Location
@@ -73,22 +70,12 @@ model Event {
   description String
   date        DateTime
   time        DateTime
-<<<<<<< HEAD
-  eventStatus EventStatus @default(ACTIVE)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  promotorId  String?
-  thumbnail   String?     @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
-  slug        String      @unique
-  promotor    Promotor?   @relation(fields: [promotorId], references: [id], onDelete: Cascade)
-=======
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   promotorId  String?
   thumbnail   String?   @default("https://res.cloudinary.com/dxpeofir6/image/upload/v1734167683/eventdefault_fuvrcj.webp")
   slug        String    @unique
   promotor    Promotor? @relation(fields: [promotorId], references: [id], onDelete: Cascade)
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
   orders      Order[]
   tickets     Ticket[]
   reviews     Reviews[]
@@ -161,11 +148,3 @@ enum Status {
   CANCELED
   PENDING
 }
-<<<<<<< HEAD
-
-enum EventStatus {
-  ACTIVE
-  SUCCED
-}
-=======
->>>>>>> b4237b98d5c36ed62460e4a5d3105a1bee3a357a
