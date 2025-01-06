@@ -17,7 +17,7 @@ const prisma_1 = __importDefault(require("../prisma")); // Adjust the path as ne
 const supabase_1 = require("../supabase");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const crypto_1 = require("crypto");
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 if (!base_url_fe || !process.env.JWT_KEY) {
     throw new Error("Required environment variables are missing.");
 }

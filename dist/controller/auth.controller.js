@@ -13,6 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const prisma_1 = __importDefault(require("../prisma"));
 const bcrypt_1 = require("bcrypt");
 const user_service_1 = require("../services/user.service");
@@ -24,7 +26,7 @@ const generateReferalCode_1 = require("../utils/generateReferalCode");
 const mailer_1 = require("../services/mailer");
 const promotor_service_1 = require("../services/promotor.service");
 const date_fns_1 = require("date-fns");
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 class AuthController {
     loginUser(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
