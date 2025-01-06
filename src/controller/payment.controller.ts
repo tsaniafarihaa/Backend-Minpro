@@ -43,7 +43,7 @@ export class PaymentController {
           .json({ message: "Order not found or incomplete" });
       }
 
-      // Check coupon usage if the order uses a coupon
+      // cek kupon
       const orderDetail = order.details[0];
       if (orderDetail?.userCouponId) {
         // Verify user has valid coupon
