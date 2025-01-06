@@ -118,8 +118,8 @@ export class PaymentController {
           email: order.user.email,
         },
         callbacks: {
-          finish: `${process.env.NEXT_PUBLIC_BASE_URL_FE}/payment/success?order_id=ORDER-${order.id}`,
-          error: `${process.env.NEXT_PUBLIC_BASE_URL_FE}/payment/failed?order_id=ORDER-${order.id}`,
+          finish: `${process.env.BASE_URL_FE}/payment/success?order_id=ORDER-${order.id}`,
+          error: `${process.env.BASE_URL_FE}/payment/failed?order_id=ORDER-${order.id}`,
         },
       });
 
