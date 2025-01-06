@@ -1,4 +1,3 @@
-// src/controller/edit.controller.ts
 import { Request, Response } from "express";
 import prisma from "../prisma";
 import { cloudinaryUpload } from "../services/cloudinary";
@@ -8,10 +7,6 @@ export class EditEventController {
     try {
       const eventId = parseInt(req.params.id);
       const promotorId = req.promotor?.id;
-
-      console.log("Request params:", req.params);
-      console.log("Request headers:", req.headers);
-      console.log("Promotor from token:", req.promotor);
 
       if (!promotorId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -27,15 +22,21 @@ export class EditEventController {
         },
       });
 
-      console.log("Found event:", event);
-
       if (!event) {
         return res
           .status(404)
           .json({ message: "Event not found or unauthorized" });
       }
 
-      return res.status(200).json(event);
+      // Format the time for frontend consumption
+      const formattedEvent = {
+        ...event,
+        time: event.time.toTimeString().slice(0, 5),
+
+        date: new Date(event.date).toISOString().split("T")[0],
+      };
+
+      return res.status(200).json(formattedEvent);
     } catch (error) {
       console.error("Detailed error:", error);
       return res.status(500).json({
@@ -50,11 +51,7 @@ export class EditEventController {
       const eventId = parseInt(req.params.id);
       const promotorId = req.promotor?.id;
 
-      console.log("Updating event with ID:", eventId);
-      console.log("Promotor ID:", promotorId);
-      console.log("Request body:", req.body);
-      console.log("Request file:", req.file);
-      console.log("Tickets data received:", req.body.tickets);
+      console.log("Request body before processing:", req.body);
 
       if (!promotorId) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -81,13 +78,19 @@ export class EditEventController {
         thumbnailUrl = result.secure_url;
       }
 
-      // Parse date and time
       const eventDate = new Date(req.body.date);
-      const [hours, minutes] = req.body.time.split(":");
-      const eventTime = new Date(eventDate);
-      eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-      // Parse tickets data safely
+      let eventTime = eventDate; // Gunakan eventDate sebagai base
+      if (req.body.time) {
+        const [hours, minutes] = req.body.time.split(":");
+        eventTime.setHours(parseInt(hours), parseInt(minutes));
+        console.log("Time being set:", { hours, minutes, eventTime }); // Tambah log untuk debugging
+      } else {
+        eventTime = existingEvent.time;
+      }
+      console.log("Processed time:", eventTime);
+
+      // Parse tickets data
       let tickets;
       try {
         tickets =
@@ -95,13 +98,12 @@ export class EditEventController {
             ? JSON.parse(req.body.tickets)
             : req.body.tickets;
 
-        // Validate tickets structure
         if (!Array.isArray(tickets)) {
           throw new Error("Tickets must be an array");
         }
 
         // Validate each ticket
-        tickets.forEach((ticket) => {
+        tickets.forEach((ticket: any) => {
           if (
             !ticket.id ||
             !ticket.category ||
@@ -154,11 +156,20 @@ export class EditEventController {
         return event;
       });
 
-      console.log("Updated event:", updatedEvent);
+      // Format the response
+      const formattedEvent = {
+        ...updatedEvent,
+        time: new Date(updatedEvent.time).toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        date: new Date(updatedEvent.date).toISOString().split("T")[0],
+      };
 
       return res.status(200).json({
         message: "Event updated successfully",
-        data: updatedEvent,
+        data: formattedEvent,
       });
     } catch (error) {
       console.error("Update event error:", error);
