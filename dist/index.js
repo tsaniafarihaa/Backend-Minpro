@@ -20,6 +20,7 @@ require("dotenv/config");
 const order_router_1 = require("./router/order.router");
 const review_router_1 = require("./router/review.router");
 const dashboard_router_1 = require("./router/dashboard.router");
+const oauth_router_1 = require("./router/oauth.router");
 const PORT = 8000;
 const base_url_fe = process.env.BASE_URL_FE;
 const app = (0, express_1.default)();
@@ -38,8 +39,10 @@ const promotorRouter = new promotor_router_1.PromotorRouter();
 const orderRouter = new order_router_1.OrderRouter();
 const promotorEventsRouter = new promotorevent_router_1.PromotorEventsRouter();
 const dashboardRouter = new dashboard_router_1.DashboardRouter();
+const oauthRouter = new oauth_router_1.OAuthRouter();
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
+app.use("api/oauth", oauthRouter.getRouter());
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", detail_router_1.eventDetailRouter.getRouter());
