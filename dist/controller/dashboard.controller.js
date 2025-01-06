@@ -129,6 +129,9 @@ class DashboardController {
                     include: {
                         orders: true, // Include orders to count those with "PAID" status
                     },
+                    orderBy: {
+                        date: "desc", // Orders the events by date from most recent to oldest
+                    },
                 });
                 const formattedEvents = events.map((event) => {
                     // Count the number of PAID orders for tickets sold
@@ -137,8 +140,7 @@ class DashboardController {
                     const totalRevenue = event.orders
                         .filter((order) => order.status === "PAID")
                         .reduce((sum, order) => sum + (order.finalPrice || 0), 0);
-                    // const profitPercentage = 20; // Static persenan
-                    const profit = totalRevenue / 100;
+                    const profit = totalRevenue / 100; // Calculates profit as a percentage of total revenue
                     return {
                         id: event.id,
                         title: event.title,

@@ -339,7 +339,7 @@ class AuthController {
                         points: user.points,
                         refCode: user.refCode,
                         percentage: user.percentage,
-                        userCoupon: (_a = user.usercoupon) === null || _a === void 0 ? void 0 : _a.expiredAt,
+                        expiredAt: (_a = user.usercoupon) === null || _a === void 0 ? void 0 : _a.expiredAt,
                     });
                 }
                 else {

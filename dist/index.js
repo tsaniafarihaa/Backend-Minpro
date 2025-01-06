@@ -19,13 +19,15 @@ const order_router_1 = require("./router/order.router");
 const review_router_1 = require("./router/review.router");
 const dashboard_router_1 = require("./router/dashboard.router");
 const PORT = 8000;
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use((0, cors_1.default)({
-    origin: `https://git-collab-pt2.vercel.app/`,
+    origin: base_url_fe,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
 }));
 // Initialize routers
 const authRouter = new auth_router_1.AuthRouter();
@@ -43,6 +45,7 @@ app.use("/api/events", createevent_router_1.eventRouter.getRouter());
 app.use("/api/dashboard", dashboardRouter.getRouter());
 app.use("/api/events/edit", edit_router_1.editEventRouter.getRouter());
 app.use("/api/promotors/events", promotorEventsRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter());
 app.use("/api/orders", orderRouter.getRouter());
 app.use("/api/reviews", review_router_1.reviewRouter.getRouter());
 app.use("/api/payment", payment_router_1.default);
