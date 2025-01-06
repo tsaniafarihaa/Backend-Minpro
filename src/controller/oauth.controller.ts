@@ -1,4 +1,6 @@
-import prisma from "../prisma"; // Adjust the path as needed
+import dotenv from "dotenv"
+dotenv.config()
+import prisma from "../prisma"; 
 import { Request, Response } from "express";
 import { supabase } from "../supabase";
 import { sign } from "jsonwebtoken";

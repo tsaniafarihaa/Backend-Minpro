@@ -41,9 +41,15 @@ export class DashboardRouter {
       verifyTokenPromotor,
       this.dashboardController.getPromotorEvents
     );
+    this.router.get(
+      "/getgrouprevenue",
+      verifyTokenPromotor,
+      this.dashboardController.getRevenueGroupedByPeriod
+    );
 
+    
 
- //Routing untuk mendapatkan si event beserta pendapatan nya berdasarkan ID
+    //Routing untuk mendapatkan si event beserta pendapatan nya berdasarkan ID
     // this.router.get(
     //   "/getEventDasboardbyID/:eventId",
     //   verifyTokenPromotor,
