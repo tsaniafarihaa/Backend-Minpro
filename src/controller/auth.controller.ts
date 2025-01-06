@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config()
 import { Request, Response } from "express";
 import prisma from "../prisma";
 import { genSalt, hash, compare } from "bcrypt";
