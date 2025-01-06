@@ -23,7 +23,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: `https://git-collab-pt2.vercel.app`,
+    origin: `https://git-collab-pt2.vercel.app/`,
     credentials: true,
   })
 );
