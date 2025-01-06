@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config()
 import express from "express";
 import cookieParser from "cookie-parser";
 import { AuthRouter } from "./router/auth.router";
@@ -14,6 +16,7 @@ import { OrderRouter } from "./router/order.router";
 import { reviewRouter } from "./router/review.router";
 import { DashboardRouter } from "./router/dashboard.router";
 
+
 const PORT: number = 8000;
 const base_url_fe = process.env.BASE_URL_FE;
 
@@ -23,7 +26,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "https://git-collab-pt2.vercel.app",
+    origin: base_url_fe,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
