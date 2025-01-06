@@ -40,6 +40,7 @@ const createEventSchema = Joi.object({
 
 const updateEventSchema = Joi.object({
   ...baseEventSchema,
+  time: Joi.string().allow("").optional(),
   tickets: Joi.alternatives().conditional("eventType", {
     is: "paid",
     then: Joi.array().items(updateTicketSchema).min(1).required(),

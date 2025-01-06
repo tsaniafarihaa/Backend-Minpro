@@ -25,11 +25,15 @@ export class CreateEventService {
         thumbnailUrl = result.secure_url;
       }
 
+      // Handle date and time
       const eventDate = new Date(data.date);
+      let eventTime = eventDate; // Gunakan eventDate sebagai base
       const [hours, minutes] = data.time.split(":");
-      const eventTime = new Date();
-      eventTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Langsung set waktu yang diterima tanpa kondisi default
+      eventTime.setHours(parseInt(hours), parseInt(minutes));
+      console.log("Time being set:", { hours, minutes, eventTime }); // Untuk debugging
 
+      // Generate slug
       const baseSlug = this.generateSlug(data.title);
       let finalSlug = baseSlug;
       let counter = 1;
@@ -39,6 +43,7 @@ export class CreateEventService {
         counter++;
       }
 
+      // Create event data
       const eventData: Prisma.EventCreateInput = {
         title: data.title,
         slug: finalSlug,
@@ -63,6 +68,7 @@ export class CreateEventService {
         },
       };
 
+      // Create event with tickets
       const event = await prisma.event.create({
         data: eventData,
         include: {
