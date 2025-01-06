@@ -45,7 +45,9 @@ const oauthRouter = new OAuthRouter()
 
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
+
 app.use("/api/oauth",oauthRouter.getRouter())
+
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", eventDetailRouter.getRouter());
