@@ -15,6 +15,7 @@ import "dotenv/config";
 import { OrderRouter } from "./router/order.router";
 import { reviewRouter } from "./router/review.router";
 import { DashboardRouter } from "./router/dashboard.router";
+import { OAuthRouter } from "./router/oauth.router";
 
 
 const PORT: number = 8000;
@@ -40,9 +41,11 @@ const promotorRouter = new PromotorRouter();
 const orderRouter = new OrderRouter();
 const promotorEventsRouter = new PromotorEventsRouter();
 const dashboardRouter = new DashboardRouter();
+const oauthRouter = new OAuthRouter()
 
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
+app.use("api/oauth",oauthRouter.getRouter())
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", eventDetailRouter.getRouter());
