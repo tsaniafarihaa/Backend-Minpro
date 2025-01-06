@@ -15,7 +15,7 @@ import { reviewRouter } from "./router/review.router";
 import { DashboardRouter } from "./router/dashboard.router";
 
 const PORT: number = 8000;
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 
 const app = express();
 app.use(express.json());
