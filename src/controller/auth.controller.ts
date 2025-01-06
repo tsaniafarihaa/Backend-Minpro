@@ -11,7 +11,7 @@ import { transporter } from "../services/mailer";
 import { findPromotor } from "../services/promotor.service";
 import { addMonths } from "date-fns";
 
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 
 export class AuthController {
   async loginUser(req: Request, res: Response) {

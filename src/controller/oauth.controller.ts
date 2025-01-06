@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
 import { sign } from "jsonwebtoken";
 import { randomBytes } from "crypto";
 
-const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
+const base_url_fe = process.env.BASE_URL_FE;
 
 if (!base_url_fe || !process.env.JWT_KEY) {
   throw new Error("Required environment variables are missing.");
