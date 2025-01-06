@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReviewController = void 0;
 const prisma_1 = __importDefault(require("../prisma"));
 class ReviewController {
-    // Modified createReview function in review.controller.ts
     createReview(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -26,7 +25,6 @@ class ReviewController {
                     res.status(401).json({ message: "Unauthorized" });
                     return;
                 }
-                // Check for existing review
                 const existingReview = yield prisma_1.default.reviews.findFirst({
                     where: {
                         userId,

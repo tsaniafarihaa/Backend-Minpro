@@ -17,13 +17,14 @@ const cors_1 = __importDefault(require("cors"));
 require("dotenv/config");
 const order_router_1 = require("./router/order.router");
 const review_router_1 = require("./router/review.router");
+const dashboard_router_1 = require("./router/dashboard.router");
 const PORT = 8000;
 const base_url_fe = process.env.NEXT_PUBLIC_BASE_URL_FE;
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use((0, cors_1.default)({
-    origin: `${base_url_fe}`,
+    origin: `https://git-collab-pt2.vercel.app/`,
     credentials: true,
 }));
 // Initialize routers
@@ -32,12 +33,14 @@ const userRouter = new user_router_1.UserRouter();
 const promotorRouter = new promotor_router_1.PromotorRouter();
 const orderRouter = new order_router_1.OrderRouter();
 const promotorEventsRouter = new promotorevent_router_1.PromotorEventsRouter();
+const dashboardRouter = new dashboard_router_1.DashboardRouter();
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", detail_router_1.eventDetailRouter.getRouter());
 app.use("/api/events", createevent_router_1.eventRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter());
 app.use("/api/events/edit", edit_router_1.editEventRouter.getRouter());
 app.use("/api/promotors/events", promotorEventsRouter.getRouter());
 app.use("/api/orders", orderRouter.getRouter());
