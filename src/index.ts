@@ -25,6 +25,8 @@ app.use(
   cors({
     origin: base_url_fe,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -45,6 +47,7 @@ app.use("/api/events", eventRouter.getRouter());
 app.use("/api/dashboard", dashboardRouter.getRouter());
 app.use("/api/events/edit", editEventRouter.getRouter());
 app.use("/api/promotors/events", promotorEventsRouter.getRouter());
+app.use("/api/dashboard", dashboardRouter.getRouter())
 app.use("/api/orders", orderRouter.getRouter());
 app.use("/api/reviews", reviewRouter.getRouter());
 app.use("/api/payment", paymentRouter);
