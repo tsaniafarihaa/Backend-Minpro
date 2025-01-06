@@ -19,7 +19,6 @@ interface CustomRequest extends Request {
 }
 
 export class ReviewController {
-  // Modified createReview function in review.controller.ts
   async createReview(
     req: Request<{}, {}, ReviewBody>,
     res: Response
@@ -33,7 +32,6 @@ export class ReviewController {
         return;
       }
 
-      // Check for existing review
       const existingReview = await prisma.reviews.findFirst({
         where: {
           userId,

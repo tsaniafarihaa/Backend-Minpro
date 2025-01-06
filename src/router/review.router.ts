@@ -15,17 +15,14 @@ export class ReviewRouter {
   }
 
   private initializeRoutes() {
-    // Create a review (requires user authentication)
     this.router.post(
       "/create",
       verifyTokenUser,
       this.reviewController.createReview
     );
 
-    // Get reviews for a specific event (public route)
     this.router.get("/event/:eventId", this.reviewController.getEventReviews);
 
-    // Get all events with reviews for a promotor (requires promotor authentication)
     this.router.get(
       "/promotor/events",
       verifyTokenPromotor,

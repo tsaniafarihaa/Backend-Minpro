@@ -35,7 +35,7 @@ const createEventSchema = joi_1.default.object(Object.assign(Object.assign({}, b
         then: joi_1.default.array().items(ticketSchema).min(1).required(),
         otherwise: joi_1.default.array().items(ticketSchema).max(1),
     }) }));
-const updateEventSchema = joi_1.default.object(Object.assign(Object.assign({}, baseEventSchema), { tickets: joi_1.default.alternatives().conditional("eventType", {
+const updateEventSchema = joi_1.default.object(Object.assign(Object.assign({}, baseEventSchema), { time: joi_1.default.string().allow("").optional(), tickets: joi_1.default.alternatives().conditional("eventType", {
         is: "paid",
         then: joi_1.default.array().items(updateTicketSchema).min(1).required(),
         otherwise: joi_1.default.array().items(updateTicketSchema).max(1),
