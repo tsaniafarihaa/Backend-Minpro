@@ -42,7 +42,9 @@ const dashboardRouter = new dashboard_router_1.DashboardRouter();
 const oauthRouter = new oauth_router_1.OAuthRouter();
 // Register routes
 app.use("/api/auth", authRouter.getRouter());
-app.use("api/oauth", oauthRouter.getRouter());
+
+app.use("/api/oauth", oauthRouter.getRouter());
+
 app.use("/api/users", userRouter.getRouter());
 app.use("/api/promotors", promotorRouter.getRouter());
 app.use("/api/events", detail_router_1.eventDetailRouter.getRouter());
