@@ -158,24 +158,52 @@ export class DashboardController {
     }
   }
 
-  async getRevenueGroupedByPeriod(req: Request, res: Response): Promise<void> {
+  async getTotalPaidTransactions(req: Request, res: Response): Promise<void> {
     try {
       const promotorId = req.promotor?.id;
+  
       if (!promotorId) {
         res.status(400).json({ error: "Invalid promotor ID" });
         return;
       }
+  
+      // Count all orders with "PAID" status
+      const totalPaidTransactions = await prisma.order.count({
+        where: {
+          status: "PAID",
+          event: {
+            promotorId: promotorId,
+          },
+        },
+      });
+  
+      res.status(200).json({ totalPaidTransactions });
+    } catch (error) {
+      console.error("Error fetching total paid transactions:", error);
+      res.status(500).json({ error: "Failed to fetch total paid transactions" });
+    }
+  }
 
-      const period = req.query.period as string;
-      if (!["day", "week", "month", "year"].includes(period)) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid period. Use 'day', 'week', 'month', or 'year'",
-          });
+  async  getRevenueGroupedByPeriod(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id; // Ensure promotorId is extracted correctly
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
         return;
       }
-
+  
+      const period = req.query.period as string;
+      if (!["day", "week", "month", "year"].includes(period)) {
+        res.status(400).json({
+          error: "Invalid period. Use 'day', 'week', 'month', or 'year'.",
+        });
+        return;
+      }
+  
+      // Fetch orders
       const orders = await prisma.order.findMany({
         where: {
           status: "PAID",
@@ -187,53 +215,60 @@ export class DashboardController {
           createdAt: true,
           finalPrice: true,
         },
-        orderBy: {
-          createdAt: "asc",
-        },
       });
-
+  
+      if (!orders.length) {
+        res.status(200).json({ message: "No orders found", groupedRevenue: [] });
+        return;
+      }
+  
+      // Aggregate revenue
       const groupedRevenue = orders.reduce((acc, order) => {
-        const date = new Date(order.createdAt);
-
+        const date = new Date(order.createdAt); // Parse createdAt
         let periodLabel: string;
-
+  
         if (period === "day") {
-          const day = date.getDate(); // Day of the month
-          periodLabel = `Day ${day}`;
+          periodLabel = date.toISOString().split("T")[0]; // YYYY-MM-DD
         } else if (period === "week") {
-          const weekNumber = getISOWeek(date); // Week of the year
-          periodLabel = `Week ${weekNumber}`;
+          const weekNumber = getISOWeek(date);
+          const year = date.getFullYear();
+          periodLabel = `Week ${weekNumber}, ${year}`;
         } else if (period === "month") {
-          const month = date.getMonth() + 1; // Month number (1-12)
-          periodLabel = `Month ${month}`;
+          const month = date.getMonth() + 1;
+          const year = date.getFullYear();
+          periodLabel = `Month ${month}, ${year}`;
         } else if (period === "year") {
-          const year = date.getFullYear(); // Year
+          const year = date.getFullYear();
           periodLabel = `Year ${year}`;
         } else {
-          throw new Error("Invalid period specified");
+          throw new Error("Invalid period specified.");
         }
-
+  
+        // Sum finalPrice for each period
         if (!acc[periodLabel]) {
           acc[periodLabel] = 0;
         }
-
         acc[periodLabel] += order.finalPrice ?? 0;
+  
         return acc;
       }, {} as Record<string, number>);
-
+  
+      // Format the response
       const formattedRevenue = Object.entries(groupedRevenue).map(
         ([period, totalRevenue]) => ({
           period,
           totalRevenue,
         })
       );
-
+  
       res.status(200).json({ groupedRevenue: formattedRevenue });
     } catch (error) {
       console.error("Error fetching revenue grouped by period:", error);
       res.status(500).json({ error: "Failed to fetch grouped revenue" });
     }
   }
+  
+  
 }
 
 // async getRevenueGroupedByPeriod(req: Request, res: Response): Promise<void> {
