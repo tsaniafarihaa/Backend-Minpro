@@ -222,10 +222,10 @@ export class PaymentController {
         });
       }
 
+      // Check if user has ever used any coupon
       const existingCouponUse = await prisma.orderDetail.findFirst({
         where: {
           order: {
-            eventId: eventId,
             userId: userId,
             NOT: {
               status: "CANCELED",
@@ -236,6 +236,15 @@ export class PaymentController {
           },
         },
       });
+
+      if (existingCouponUse) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: 0,
+          remainingCoupons: 0,
+          message: "You have already used your one-time coupon",
+        });
+      }
 
       const couponUseCount = await prisma.orderDetail.count({
         where: {
@@ -343,10 +352,10 @@ export class PaymentController {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const existingCouponUse = await prisma.order.findFirst({
+      // Check if user has ever used any coupon (for any event)
+      const anyExistingCouponUse = await prisma.order.findFirst({
         where: {
           userId,
-          eventId,
           details: {
             some: {
               userCouponId: {
@@ -360,11 +369,22 @@ export class PaymentController {
         },
       });
 
+      // Check if user has a valid coupon
+      const userCoupon = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { usercoupon: true },
+      });
+
       return res.status(200).json({
-        canUseCoupon: !existingCouponUse,
+        canUseCoupon:
+          !anyExistingCouponUse && !!userCoupon?.usercoupon?.isRedeem,
+        message: anyExistingCouponUse
+          ? "You have already used your coupon"
+          : undefined,
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to check coupon status" });
+      console.error("Check user coupon error:", error);
+      return res.status(500).json({ message: "Failed to check coupon status" });
     }
   }
 
