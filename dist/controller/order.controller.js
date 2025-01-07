@@ -54,31 +54,62 @@ class OrderController {
                             data: { points: { decrement: 10000 } },
                         });
                     }
-                    // Handle coupon usage if not a free ticket
                     let userCouponId = null;
                     if (!isFreeTicket && useCoupon) {
-                        const couponUsersCount = yield tx.order.count({
+                        // Check if user already used coupon for this event
+                        const existingCouponUse = yield tx.order.findFirst({
+                            where: {
+                                userId,
+                                eventId,
+                                details: {
+                                    some: {
+                                        userCouponId: {
+                                            not: null,
+                                        },
+                                    },
+                                },
+                                NOT: {
+                                    status: "CANCELED",
+                                },
+                            },
+                        });
+                        if (existingCouponUse) {
+                            throw new Error("You have already used a coupon for this event");
+                        }
+                        // Check coupon limit for event
+                        const couponUseCount = yield tx.order.count({
                             where: {
                                 eventId,
                                 details: {
                                     some: {
-                                        UserCoupon: { isNot: null },
+                                        userCouponId: {
+                                            not: null,
+                                        },
                                     },
+                                },
+                                NOT: {
+                                    status: "CANCELED",
                                 },
                             },
                         });
-                        if (couponUsersCount < 10) {
-                            const user = yield tx.user.findUnique({
-                                where: { id: userId },
-                                include: { usercoupon: true },
+                        if (couponUseCount >= 10) {
+                            throw new Error("Coupon limit reached for this event");
+                        }
+                        // If validations pass, get and use the coupon
+                        const user = yield tx.user.findUnique({
+                            where: { id: userId },
+                            include: { usercoupon: true },
+                        });
+                        if ((user === null || user === void 0 ? void 0 : user.usercoupon) && user.usercoupon.isRedeem) {
+                            userCouponId = user.usercoupon.id;
+                            // Update isRedeem ke false karena kupon sudah digunakan
+                            yield tx.userCoupon.update({
+                                where: { id: userCouponId },
+                                data: { isRedeem: false },
                             });
-                            if (user === null || user === void 0 ? void 0 : user.usercoupon) {
-                                userCouponId = user.usercoupon.id;
-                                yield tx.userCoupon.update({
-                                    where: { id: userCouponId },
-                                    data: { isRedeem: true },
-                                });
-                            }
+                        }
+                        else {
+                            throw new Error("No valid coupon available or coupon already used");
                         }
                     }
                     // Create order with proper status

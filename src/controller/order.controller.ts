@@ -107,14 +107,17 @@ export class OrderController {
               include: { usercoupon: true },
             });
 
-            if (user?.usercoupon?.isRedeem) {
+            if (user?.usercoupon && user.usercoupon.isRedeem) {
               userCouponId = user.usercoupon.id;
+              // Update isRedeem ke false karena kupon sudah digunakan
               await tx.userCoupon.update({
                 where: { id: userCouponId },
                 data: { isRedeem: false },
               });
             } else {
-              throw new Error("No valid coupon available");
+              throw new Error(
+                "No valid coupon available or coupon already used"
+              );
             }
           }
 

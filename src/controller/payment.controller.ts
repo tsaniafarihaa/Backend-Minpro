@@ -213,12 +213,15 @@ export class PaymentController {
         include: { usercoupon: true },
       });
 
-      if (!user?.usercoupon) {
+      if (!user?.usercoupon || !user.usercoupon.isRedeem) {
         return res.status(200).json({
           canUseCoupon: false,
           couponUsageCount: 0,
           remainingCoupons: 0,
-          message: "No coupon available",
+          message:
+            user?.usercoupon && !user.usercoupon.isRedeem
+              ? "Your coupon has already been used"
+              : "No valid coupon available",
         });
       }
 
@@ -377,9 +380,11 @@ export class PaymentController {
 
       return res.status(200).json({
         canUseCoupon:
-          !anyExistingCouponUse && !!userCoupon?.usercoupon?.isRedeem,
-        message: anyExistingCouponUse
-          ? "You have already used your coupon"
+          !anyExistingCouponUse && userCoupon?.usercoupon?.isRedeem === true,
+        message: !userCoupon?.usercoupon?.isRedeem
+          ? "Your coupon has already been used"
+          : anyExistingCouponUse
+          ? "You have already used a coupon for this event"
           : undefined,
       });
     } catch (error) {

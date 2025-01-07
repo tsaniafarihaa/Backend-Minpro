@@ -208,18 +208,20 @@ class PaymentController {
                     where: { id: userId },
                     include: { usercoupon: true },
                 });
-                if (!(user === null || user === void 0 ? void 0 : user.usercoupon)) {
+                if (!(user === null || user === void 0 ? void 0 : user.usercoupon) || !user.usercoupon.isRedeem) {
                     return res.status(200).json({
                         canUseCoupon: false,
                         couponUsageCount: 0,
                         remainingCoupons: 0,
-                        message: "No coupon available",
+                        message: (user === null || user === void 0 ? void 0 : user.usercoupon) && !user.usercoupon.isRedeem
+                            ? "Your coupon has already been used"
+                            : "No valid coupon available",
                     });
                 }
+                // Check if user has ever used any coupon
                 const existingCouponUse = yield prisma_1.default.orderDetail.findFirst({
                     where: {
                         order: {
-                            eventId: eventId,
                             userId: userId,
                             NOT: {
                                 status: "CANCELED",
@@ -230,6 +232,14 @@ class PaymentController {
                         },
                     },
                 });
+                if (existingCouponUse) {
+                    return res.status(200).json({
+                        canUseCoupon: false,
+                        couponUsageCount: 0,
+                        remainingCoupons: 0,
+                        message: "You have already used your one-time coupon",
+                    });
+                }
                 const couponUseCount = yield prisma_1.default.orderDetail.count({
                     where: {
                         order: {
@@ -325,17 +335,17 @@ class PaymentController {
     }
     checkUserCoupon(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
+            var _a, _b, _c;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
                 const eventId = Number(req.params.eventId);
                 if (!userId || !eventId) {
                     return res.status(400).json({ message: "Missing required fields" });
                 }
-                const existingCouponUse = yield prisma_1.default.order.findFirst({
+                // Check if user has ever used any coupon (for any event)
+                const anyExistingCouponUse = yield prisma_1.default.order.findFirst({
                     where: {
                         userId,
-                        eventId,
                         details: {
                             some: {
                                 userCouponId: {
@@ -348,12 +358,23 @@ class PaymentController {
                         },
                     },
                 });
+                // Check if user has a valid coupon
+                const userCoupon = yield prisma_1.default.user.findUnique({
+                    where: { id: userId },
+                    include: { usercoupon: true },
+                });
                 return res.status(200).json({
-                    canUseCoupon: !existingCouponUse,
+                    canUseCoupon: !anyExistingCouponUse && ((_b = userCoupon === null || userCoupon === void 0 ? void 0 : userCoupon.usercoupon) === null || _b === void 0 ? void 0 : _b.isRedeem) === true,
+                    message: !((_c = userCoupon === null || userCoupon === void 0 ? void 0 : userCoupon.usercoupon) === null || _c === void 0 ? void 0 : _c.isRedeem)
+                        ? "Your coupon has already been used"
+                        : anyExistingCouponUse
+                            ? "You have already used a coupon for this event"
+                            : undefined,
                 });
             }
             catch (error) {
-                res.status(500).json({ message: "Failed to check coupon status" });
+                console.error("Check user coupon error:", error);
+                return res.status(500).json({ message: "Failed to check coupon status" });
             }
         });
     }
