@@ -43,64 +43,14 @@ export class PaymentController {
           .json({ message: "Order not found or incomplete" });
       }
 
-      // cek kupon
+      // Get the first order detail and ticket
       const orderDetail = order.details[0];
-      if (orderDetail?.userCouponId) {
-        // Verify user has valid coupon
-        if (!order.user.usercoupon?.isRedeem || !order.user.percentage) {
-          return res.status(400).json({ message: "Invalid coupon" });
-        }
-
-        // Check if user has already used a coupon for this event
-        const existingCouponUse = await prisma.orderDetail.findFirst({
-          where: {
-            order: {
-              eventId: order.event.id,
-              userId: userId,
-              NOT: {
-                status: "CANCELED",
-              },
-            },
-            userCouponId: {
-              not: null,
-            },
-          },
-        });
-
-        if (existingCouponUse) {
-          return res.status(400).json({
-            message: "You have already used a coupon for this event",
-          });
-        }
-
-        // Check coupon limit for event
-        const couponUseCount = await prisma.orderDetail.count({
-          where: {
-            order: {
-              eventId: order.event.id,
-              NOT: {
-                status: "CANCELED",
-              },
-            },
-            userCouponId: {
-              not: null,
-            },
-          },
-        });
-
-        if (couponUseCount >= 2) {
-          return res.status(400).json({
-            message: "Coupon limit reached for this event",
-          });
-        }
-      }
-
-      const ticket = orderDetail?.tickets[0];
-      if (!orderDetail || !ticket) {
+      if (!orderDetail || !orderDetail.tickets[0]) {
         return res.status(404).json({ message: "Ticket details not found" });
       }
 
-      let eachPrice = order.finalPrice / orderDetail.quantity;
+      const ticket = orderDetail.tickets[0];
+      const eachPrice = order.finalPrice / orderDetail.quantity;
 
       const transaction = await midtransService.createTransaction({
         orderId: `ORDER-${order.id}`,
@@ -141,7 +91,7 @@ export class PaymentController {
       console.error("Payment creation error:", error);
       return res.status(500).json({
         message: "Failed to create payment",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }

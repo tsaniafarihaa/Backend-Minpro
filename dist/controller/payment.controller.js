@@ -23,7 +23,7 @@ const date_fns_1 = require("date-fns");
 class PaymentController {
     createPayment(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a;
             try {
                 const { orderId } = req.body;
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
@@ -54,58 +54,13 @@ class PaymentController {
                         .status(404)
                         .json({ message: "Order not found or incomplete" });
                 }
-                // cek kupon
+                // Get the first order detail and ticket
                 const orderDetail = order.details[0];
-                if (orderDetail === null || orderDetail === void 0 ? void 0 : orderDetail.userCouponId) {
-                    // Verify user has valid coupon
-                    if (!((_b = order.user.usercoupon) === null || _b === void 0 ? void 0 : _b.isRedeem) || !order.user.percentage) {
-                        return res.status(400).json({ message: "Invalid coupon" });
-                    }
-                    // Check if user has already used a coupon for this event
-                    const existingCouponUse = yield prisma_1.default.orderDetail.findFirst({
-                        where: {
-                            order: {
-                                eventId: order.event.id,
-                                userId: userId,
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                            userCouponId: {
-                                not: null,
-                            },
-                        },
-                    });
-                    if (existingCouponUse) {
-                        return res.status(400).json({
-                            message: "You have already used a coupon for this event",
-                        });
-                    }
-                    // Check coupon limit for event
-                    const couponUseCount = yield prisma_1.default.orderDetail.count({
-                        where: {
-                            order: {
-                                eventId: order.event.id,
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                            userCouponId: {
-                                not: null,
-                            },
-                        },
-                    });
-                    if (couponUseCount >= 2) {
-                        return res.status(400).json({
-                            message: "Coupon limit reached for this event",
-                        });
-                    }
-                }
-                const ticket = orderDetail === null || orderDetail === void 0 ? void 0 : orderDetail.tickets[0];
-                if (!orderDetail || !ticket) {
+                if (!orderDetail || !orderDetail.tickets[0]) {
                     return res.status(404).json({ message: "Ticket details not found" });
                 }
-                let eachPrice = order.finalPrice / orderDetail.quantity;
+                const ticket = orderDetail.tickets[0];
+                const eachPrice = order.finalPrice / orderDetail.quantity;
                 const transaction = yield midtrans_1.midtransService.createTransaction({
                     orderId: `ORDER-${order.id}`,
                     amount: order.finalPrice,
@@ -144,7 +99,7 @@ class PaymentController {
                 console.error("Payment creation error:", error);
                 return res.status(500).json({
                     message: "Failed to create payment",
-                    error: error instanceof Error ? error.message : "Unknown error",
+                    error: error instanceof Error ? error.message : String(error),
                 });
             }
         });
