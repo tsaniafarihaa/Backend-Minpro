@@ -57,6 +57,26 @@ class OrderController {
                     // Handle coupon usage if not a free ticket
                     let userCouponId = null;
                     if (!isFreeTicket && useCoupon) {
+                        // Check if user has already used coupon for this event
+                        const existingCouponUse = yield tx.order.findFirst({
+                            where: {
+                                eventId,
+                                userId,
+                                details: {
+                                    some: {
+                                        userCouponId: {
+                                            not: null,
+                                        },
+                                    },
+                                },
+                                NOT: {
+                                    status: "CANCELED",
+                                },
+                            },
+                        });
+                        if (existingCouponUse) {
+                            throw new Error("You have already used a coupon for this event");
+                        }
                         const couponUsersCount = yield tx.order.count({
                             where: {
                                 eventId,
@@ -65,20 +85,24 @@ class OrderController {
                                         UserCoupon: { isNot: null },
                                     },
                                 },
+                                NOT: {
+                                    status: "CANCELED",
+                                },
                             },
                         });
-                        if (couponUsersCount < 10) {
-                            const user = yield tx.user.findUnique({
-                                where: { id: userId },
-                                include: { usercoupon: true },
+                        if (couponUsersCount >= 10) {
+                            throw new Error("Coupon limit reached for this event");
+                        }
+                        const user = yield tx.user.findUnique({
+                            where: { id: userId },
+                            include: { usercoupon: true },
+                        });
+                        if (user === null || user === void 0 ? void 0 : user.usercoupon) {
+                            userCouponId = user.usercoupon.id;
+                            yield tx.userCoupon.update({
+                                where: { id: userCouponId },
+                                data: { isRedeem: true },
                             });
-                            if (user === null || user === void 0 ? void 0 : user.usercoupon) {
-                                userCouponId = user.usercoupon.id;
-                                yield tx.userCoupon.update({
-                                    where: { id: userCouponId },
-                                    data: { isRedeem: true },
-                                });
-                            }
                         }
                     }
                     // Create order with proper status

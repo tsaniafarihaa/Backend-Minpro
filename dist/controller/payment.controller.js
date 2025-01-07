@@ -54,7 +54,7 @@ class PaymentController {
                         .status(404)
                         .json({ message: "Order not found or incomplete" });
                 }
-                // Check coupon usage if the order uses a coupon
+                // cek kupon
                 const orderDetail = order.details[0];
                 if (orderDetail === null || orderDetail === void 0 ? void 0 : orderDetail.userCouponId) {
                     // Verify user has valid coupon
@@ -232,22 +232,35 @@ class PaymentController {
     }
     checkUserCoupon(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-                if (!userId) {
-                    return res.status(400).json({ message: "User not found" });
+                const eventId = Number(req.params.eventId);
+                if (!userId || !eventId) {
+                    return res.status(400).json({ message: "Missing required fields" });
                 }
-                const user = yield prisma_1.default.user.findUnique({
-                    where: { id: userId },
-                    include: { usercoupon: true },
+                const existingCouponUse = yield prisma_1.default.order.findFirst({
+                    where: {
+                        userId,
+                        eventId,
+                        details: {
+                            some: {
+                                userCouponId: {
+                                    not: null,
+                                },
+                            },
+                        },
+                        NOT: {
+                            status: "CANCELED",
+                        },
+                    },
                 });
-                const canUseCoupon = Boolean(((_b = user === null || user === void 0 ? void 0 : user.usercoupon) === null || _b === void 0 ? void 0 : _b.isRedeem) && (user === null || user === void 0 ? void 0 : user.percentage));
-                return res.status(200).json({ canUseCoupon });
+                return res.status(200).json({
+                    canUseCoupon: !existingCouponUse,
+                });
             }
             catch (error) {
-                console.error("Check user coupon error:", error);
-                return res.status(500).json({ message: "Failed to check user coupon" });
+                res.status(500).json({ message: "Failed to check coupon status" });
             }
         });
     }
