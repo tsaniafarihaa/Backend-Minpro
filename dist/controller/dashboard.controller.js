@@ -12,7 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardController = void 0;
 const client_1 = require("../../prisma/generated/client");
 const prisma = new client_1.PrismaClient();
-const getWeekNumber_1 = require("../utils/getWeekNumber");
+// import { getWeekNumber } from "../utils/getWeekNumber";
+const date_fns_1 = require("date-fns");
 class DashboardController {
     getEventActive(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -162,7 +163,7 @@ class DashboardController {
             }
         });
     }
-    getRevenueGroupedByPeriod(req, res) {
+    getTotalPaidTransactions(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
@@ -171,11 +172,40 @@ class DashboardController {
                     res.status(400).json({ error: "Invalid promotor ID" });
                     return;
                 }
-                const period = req.query.period;
-                if (!["week", "month", "year"].includes(period)) {
-                    res.status(400).json({ error: "Invalid period. Use 'week', 'month', or 'year'" });
+                // Count all orders with "PAID" status
+                const totalPaidTransactions = yield prisma.order.count({
+                    where: {
+                        status: "PAID",
+                        event: {
+                            promotorId: promotorId,
+                        },
+                    },
+                });
+                res.status(200).json({ totalPaidTransactions });
+            }
+            catch (error) {
+                console.error("Error fetching total paid transactions:", error);
+                res.status(500).json({ error: "Failed to fetch total paid transactions" });
+            }
+        });
+    }
+    getRevenueGroupedByPeriod(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const promotorId = (_a = req.promotor) === null || _a === void 0 ? void 0 : _a.id; // Ensure promotorId is extracted correctly
+                if (!promotorId) {
+                    res.status(400).json({ error: "Invalid promotor ID" });
                     return;
                 }
+                const period = req.query.period;
+                if (!["day", "week", "month", "year"].includes(period)) {
+                    res.status(400).json({
+                        error: "Invalid period. Use 'day', 'week', 'month', or 'year'.",
+                    });
+                    return;
+                }
+                // Fetch orders
                 const orders = yield prisma.order.findMany({
                     where: {
                         status: "PAID",
@@ -187,29 +217,44 @@ class DashboardController {
                         createdAt: true,
                         finalPrice: true,
                     },
-                    orderBy: {
-                        createdAt: "asc",
-                    },
                 });
+                if (!orders.length) {
+                    res.status(200).json({ message: "No orders found", groupedRevenue: [] });
+                    return;
+                }
+                // Aggregate revenue
                 const groupedRevenue = orders.reduce((acc, order) => {
                     var _a;
-                    const date = new Date(order.createdAt);
+                    const date = new Date(order.createdAt); // Parse createdAt
                     let periodLabel;
-                    if (period === "week") {
-                        periodLabel = `Week ${(0, getWeekNumber_1.getWeekNumber)(date)}`;
+                    if (period === "day") {
+                        periodLabel = date.toISOString().split("T")[0]; // YYYY-MM-DD
+                    }
+                    else if (period === "week") {
+                        const weekNumber = (0, date_fns_1.getISOWeek)(date);
+                        const year = date.getFullYear();
+                        periodLabel = `Week ${weekNumber}, ${year}`;
                     }
                     else if (period === "month") {
-                        periodLabel = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+                        const month = date.getMonth() + 1;
+                        const year = date.getFullYear();
+                        periodLabel = `Month ${month}, ${year}`;
+                    }
+                    else if (period === "year") {
+                        const year = date.getFullYear();
+                        periodLabel = `Year ${year}`;
                     }
                     else {
-                        periodLabel = `${date.getFullYear()}`;
+                        throw new Error("Invalid period specified.");
                     }
+                    // Sum finalPrice for each period
                     if (!acc[periodLabel]) {
                         acc[periodLabel] = 0;
                     }
                     acc[periodLabel] += (_a = order.finalPrice) !== null && _a !== void 0 ? _a : 0;
                     return acc;
                 }, {});
+                // Format the response
                 const formattedRevenue = Object.entries(groupedRevenue).map(([period, totalRevenue]) => ({
                     period,
                     totalRevenue,
@@ -224,6 +269,59 @@ class DashboardController {
     }
 }
 exports.DashboardController = DashboardController;
+// async getRevenueGroupedByPeriod(req: Request, res: Response): Promise<void> {
+//   try {
+//     const promotorId = req.promotor?.id;
+//     if (!promotorId) {
+//       res.status(400).json({ error: "Invalid promotor ID" });
+//       return;
+//     }
+//     const period = req.query.period as string;
+//     if (!["week", "month", "year"].includes(period)) {
+//       res.status(400).json({ error: "Invalid period. Use 'week', 'month', or 'year'" });
+//       return;
+//     }
+//     const orders = await prisma.order.findMany({
+//       where: {
+//         status: "PAID",
+//         event: {
+//           promotorId: promotorId,
+//         },
+//       },
+//       select: {
+//         createdAt: true,
+//         finalPrice: true,
+//       },
+//       orderBy: {
+//         createdAt: "asc",
+//       },
+//     });
+//     const groupedRevenue = orders.reduce((acc, order) => {
+//       const date = new Date(order.createdAt);
+//       let periodLabel: string;
+//       if (period === "week") {
+//         periodLabel = `Week ${getWeekNumber(date)}`;
+//       } else if (period === "month") {
+//         periodLabel = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+//       } else {
+//         periodLabel = `${date.getFullYear()}`;
+//       }
+//       if (!acc[periodLabel]) {
+//         acc[periodLabel] = 0;
+//       }
+//       acc[periodLabel] += order.finalPrice ?? 0;
+//       return acc;
+//     }, {} as Record<string, number>);
+//     const formattedRevenue = Object.entries(groupedRevenue).map(([period, totalRevenue]) => ({
+//       period,
+//       totalRevenue,
+//     }));
+//     res.status(200).json({ groupedRevenue: formattedRevenue });
+//   } catch (error) {
+//     console.error("Error fetching revenue grouped by period:", error);
+//     res.status(500).json({ error: "Failed to fetch grouped revenue" });
+//   }
+// }
 //   async getTotalTransaction(req: Request, res: Response) {
 //     try {
 //       const userId = req.user?.user_id;
