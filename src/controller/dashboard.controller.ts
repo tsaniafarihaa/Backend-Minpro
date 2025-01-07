@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
-import { PrismaClient, Prisma } from "../../prisma/generated/client";
+import { PrismaClient } from "../../prisma/generated/client";
 const prisma = new PrismaClient();
+import { getWeekNumber } from "../utils/getWeekNumber";
+
 
 export class DashboardController {
   async getEventActive(req: Request, res: Response): Promise<void> {
@@ -22,7 +24,7 @@ export class DashboardController {
         },
       });
 
-      res.status(200).json({ activeEvents: activeEvent }); // Updated key
+      res.status(200).json({ activeEvents: activeEvent });
     } catch (error) {
       console.error("Error fetching active events:", error);
       res.status(500).json({ error: "Failed to fetch active events" });
@@ -48,7 +50,7 @@ export class DashboardController {
         },
       });
 
-      res.status(200).json({ deactiveEvents: deactiveEvent }); // Updated key
+      res.status(200).json({ deactiveEvents: deactiveEvent });
     } catch (error) {
       console.error("Error fetching deactive events:", error);
       res.status(500).json({ error: "Failed to fetch deactive events" });
@@ -70,7 +72,7 @@ export class DashboardController {
         },
       });
 
-      res.status(200).json({ totalEvents: totalEvent }); // Updated key
+      res.status(200).json({ totalEvents: totalEvent });
     } catch (error) {
       console.error("Error fetching total events:", error);
       res.status(500).json({ error: "Failed to fetch total events" });
@@ -124,17 +126,15 @@ export class DashboardController {
       });
 
       const formattedEvents = events.map((event) => {
-        // Count the number of PAID orders for tickets sold
         const ticketsSold = event.orders.filter(
           (order) => order.status === "PAID"
         ).length;
 
-        // Calculate total revenue from PAID orders
         const totalRevenue = event.orders
           .filter((order) => order.status === "PAID")
           .reduce((sum, order) => sum + (order.finalPrice || 0), 0);
 
-        const profit = totalRevenue / 100; // Calculates profit as a percentage of total revenue
+        const profit = totalRevenue / 100; // Calculates profit as a percentage of total revenue gagal
 
         return {
           id: event.id,
@@ -143,7 +143,7 @@ export class DashboardController {
           description: event.description,
           date: event.date,
           location: event.venue,
-          ticketsSold, // Simply the count of PAID orders
+          ticketsSold, //  count of PAID orders
           revenue: `Rp ${totalRevenue.toLocaleString("id-ID")}`,
           profit: `Rp ${profit.toLocaleString("id-ID")}`,
           profitPercentage: `${profit}%`,
@@ -157,6 +157,68 @@ export class DashboardController {
       res.status(500).json({ error: "Failed to fetch promotor events" });
     }
   }
+  async getRevenueGroupedByPeriod(req: Request, res: Response): Promise<void> {
+    try {
+      const promotorId = req.promotor?.id;
+      if (!promotorId) {
+        res.status(400).json({ error: "Invalid promotor ID" });
+        return;
+      }
+  
+      const period = req.query.period as string;
+      if (!["week", "month", "year"].includes(period)) {
+        res.status(400).json({ error: "Invalid period. Use 'week', 'month', or 'year'" });
+        return;
+      }
+  
+      const orders = await prisma.order.findMany({
+        where: {
+          status: "PAID",
+          event: {
+            promotorId: promotorId,
+          },
+        },
+        select: {
+          createdAt: true,
+          finalPrice: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+  
+      const groupedRevenue = orders.reduce((acc, order) => {
+        const date = new Date(order.createdAt);
+  
+        let periodLabel: string;
+        if (period === "week") {
+          periodLabel = `Week ${getWeekNumber(date)}`;
+        } else if (period === "month") {
+          periodLabel = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        } else {
+          periodLabel = `${date.getFullYear()}`;
+        }
+  
+        if (!acc[periodLabel]) {
+          acc[periodLabel] = 0;
+        }
+  
+        acc[periodLabel] += order.finalPrice ?? 0;
+        return acc;
+      }, {} as Record<string, number>);
+  
+      const formattedRevenue = Object.entries(groupedRevenue).map(([period, totalRevenue]) => ({
+        period,
+        totalRevenue,
+      }));
+  
+      res.status(200).json({ groupedRevenue: formattedRevenue });
+    } catch (error) {
+      console.error("Error fetching revenue grouped by period:", error);
+      res.status(500).json({ error: "Failed to fetch grouped revenue" });
+    }
+  }
+  
 }
 
 //   async getTotalTransaction(req: Request, res: Response) {
