@@ -113,7 +113,7 @@ export class AuthController {
   }
   
 
-  async verifyUser(req: Request, res: Response) {
+  async verifyUser(req: Request, res: Response):Promise<void> {
     try {
       const { token } = req.params;
       const verifiedUser: any = verify(token, process.env.JWT_KEY!);
@@ -124,11 +124,11 @@ export class AuthController {
       });
     
       if (!user) {
-        return res.status(404).send({ message: "User not found!" });
+         res.status(404).send({ message: "User not found!" });
       }
     
-      if (user.isVerify) {
-        return res.status(400).send({ message: "Account is already verified!" });
+      if (user?.isVerify) {
+         res.status(400).send({ message: "Account is already verified!" });
       }
     
       // Update the user to mark them as verified

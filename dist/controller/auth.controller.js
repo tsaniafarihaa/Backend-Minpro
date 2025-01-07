@@ -52,7 +52,7 @@ class AuthController {
             catch (err) {
                 console.error(err);
                 res.status(400).send({
-                    message: "Login failed",
+                    message: "Please check your username and password",
                 });
             }
         });
@@ -75,42 +75,17 @@ class AuthController {
                     password: hashPassword,
                     refCode: (0, generateReferalCode_1.generateReferalCode)(),
                 };
-                // Cek si Reveral Code nya
+                // Check if a referral code was provided
                 if (refCode) {
                     const referer = yield prisma_1.default.user.findUnique({
                         where: { refCode },
                     });
                     if (!referer)
                         throw { message: "Invalid referral code" };
-                    //plus point jika si reveral dipakai
-                    yield prisma_1.default.user.update({
-                        where: { id: referer.id },
-                        data: { points: { increment: 10000 } },
-                    });
-                    // persentase si kupon jika dipakai
-                    const coupon = yield prisma_1.default.userCoupon.create({
-                        data: {
-                            percentage: 10,
-                            isRedeem: false,
-                            expiredAt: (0, date_fns_1.addMonths)(new Date(), 3),
-                        },
-                    });
-                    newUserData.percentage = coupon.percentage;
-                    newUserData.userCouponId = coupon.id;
+                    // Save the referer's ID for later point and coupon assignment during verification
                     newUserData.refCodeBy = referer.id;
-                    //log untuk melihat hasil si referal dari siapa
-                    yield prisma_1.default.refLog.create({
-                        data: {
-                            pointGet: 10000,
-                            expiredAt: (0, date_fns_1.addMonths)(new Date(), 3),
-                            isUsed: false,
-                            user: {
-                                connect: { id: referer.id },
-                            },
-                        },
-                    });
                 }
-                // buat user baru dari hasil data
+                // Create the new user
                 const newUser = yield prisma_1.default.user.create({ data: newUserData });
                 const payload = { id: newUser.id };
                 const token = (0, jsonwebtoken_1.sign)(payload, process.env.JWT_KEY, { expiresIn: "1d" });
@@ -130,11 +105,11 @@ class AuthController {
                     subject: "Welcome To TIKO",
                     html,
                 });
-                res.status(201).json({ massage: "Registration Succesfull" });
+                res.status(201).json({ message: "Registration Successful" });
             }
             catch (err) {
                 console.error(err);
-                res.status(400).json({ massage: "Internal server error" });
+                res.status(400).json({ message: "Please check again username and email has been used" });
             }
         });
     }
@@ -143,15 +118,61 @@ class AuthController {
             try {
                 const { token } = req.params;
                 const verifiedUser = (0, jsonwebtoken_1.verify)(token, process.env.JWT_KEY);
-                yield prisma_1.default.user.update({
+                // Fetch the user to check if already verified
+                const user = yield prisma_1.default.user.findUnique({
+                    where: { id: verifiedUser.id },
+                });
+                if (!user) {
+                    res.status(404).send({ message: "User not found!" });
+                }
+                if (user === null || user === void 0 ? void 0 : user.isVerify) {
+                    res.status(400).send({ message: "Account is already verified!" });
+                }
+                // Update the user to mark them as verified
+                const updatedUser = yield prisma_1.default.user.update({
                     data: { isVerify: true },
                     where: { id: verifiedUser.id },
                 });
-                res.status(200).send({ message: "Verify Successfully" });
+                // Check if the user was referred by someone
+                if (updatedUser.refCodeBy) {
+                    // Increment points for the referer
+                    yield prisma_1.default.user.update({
+                        where: { id: updatedUser.refCodeBy },
+                        data: { points: { increment: 10000 } },
+                    });
+                    // Log the referral points for tracking
+                    yield prisma_1.default.refLog.create({
+                        data: {
+                            pointGet: 10000,
+                            expiredAt: (0, date_fns_1.addMonths)(new Date(), 3),
+                            isUsed: false,
+                            user: {
+                                connect: { id: updatedUser.refCodeBy },
+                            },
+                        },
+                    });
+                    // Create a coupon for the new user
+                    const coupon = yield prisma_1.default.userCoupon.create({
+                        data: {
+                            percentage: 10,
+                            isRedeem: false,
+                            expiredAt: (0, date_fns_1.addMonths)(new Date(), 3),
+                        },
+                    });
+                    // Assign the coupon to the verified user
+                    yield prisma_1.default.user.update({
+                        where: { id: updatedUser.id },
+                        data: {
+                            userCouponId: coupon.id,
+                            percentage: coupon.percentage,
+                        },
+                    });
+                }
+                res.status(200).send({ message: "Verified successfully, points granted, and coupon issued!" });
             }
             catch (err) {
-                console.log(err);
-                res.status(400).send(err);
+                console.error(err);
+                res.status(400).send({ message: "Verification failed", error: err });
             }
         });
     }
@@ -193,7 +214,7 @@ class AuthController {
             }
             catch (err) {
                 console.error(err);
-                res.status(400).json({ massage: "Registration Failed" });
+                res.status(400).json({ massage: "Please check the username and email has been used" });
             }
         });
     }
