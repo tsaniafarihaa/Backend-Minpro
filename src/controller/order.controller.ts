@@ -40,105 +40,117 @@ export class OrderController {
       const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
       // Start transaction
-      const order = await prisma.$transaction(async (tx) => {
-        // Update ticket quantity
-        await tx.ticket.update({
-          where: { id: ticketId },
-          data: { quantity: { decrement: quantity } },
-        });
-
-        // Handle points redemption if not a free ticket
-        if (!isFreeTicket && usePoints) {
-          await tx.user.update({
-            where: { id: userId },
-            data: { points: { decrement: 10000 } },
+      const order = await prisma.$transaction(
+        async (tx) => {
+          // Update ticket quantity
+          await tx.ticket.update({
+            where: { id: ticketId },
+            data: { quantity: { decrement: quantity } },
           });
-        }
 
-        // Handle coupon usage if not a free ticket
-        let userCouponId = null;
-        if (!isFreeTicket && useCoupon) {
-          // Check if user has already used coupon for this event
-          const existingCouponUse = await tx.order.findFirst({
-            where: {
-              eventId,
-              userId,
-              details: {
-                some: {
-                  userCouponId: {
-                    not: null,
+          // Handle points redemption if not a free ticket
+          if (!isFreeTicket && usePoints) {
+            await tx.user.update({
+              where: { id: userId },
+              data: { points: { decrement: 10000 } },
+            });
+          }
+
+          let userCouponId = null;
+          if (!isFreeTicket && useCoupon) {
+            // Check if user already used coupon for this event
+            const existingCouponUse = await tx.order.findFirst({
+              where: {
+                userId,
+                eventId,
+                details: {
+                  some: {
+                    userCouponId: {
+                      not: null,
+                    },
                   },
                 },
-              },
-              NOT: {
-                status: "CANCELED",
-              },
-            },
-          });
-
-          if (existingCouponUse) {
-            throw new Error("You have already used a coupon for this event");
-          }
-
-          const couponUsersCount = await tx.order.count({
-            where: {
-              eventId,
-              details: {
-                some: {
-                  UserCoupon: { isNot: null },
+                NOT: {
+                  status: "CANCELED",
                 },
               },
-              NOT: {
-                status: "CANCELED",
+            });
+
+            if (existingCouponUse) {
+              throw new Error("You have already used a coupon for this event");
+            }
+
+            // Check coupon limit for event
+            const couponUseCount = await tx.order.count({
+              where: {
+                eventId,
+                details: {
+                  some: {
+                    userCouponId: {
+                      not: null,
+                    },
+                  },
+                },
+                NOT: {
+                  status: "CANCELED",
+                },
               },
-            },
-          });
+            });
 
-          if (couponUsersCount >= 10) {
-            throw new Error("Coupon limit reached for this event");
-          }
+            if (couponUseCount >= 10) {
+              throw new Error("Coupon limit reached for this event");
+            }
 
-          const user = await tx.user.findUnique({
-            where: { id: userId },
-            include: { usercoupon: true },
-          });
+            // If validations pass, get and use the coupon
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+              include: { usercoupon: true },
+            });
 
-          if (user?.usercoupon) {
+            if (!user?.usercoupon) {
+              throw new Error("No coupon available");
+            }
+
+            if (user.usercoupon.isRedeem) {
+              throw new Error("Coupon already used");
+            }
+
             userCouponId = user.usercoupon.id;
             await tx.userCoupon.update({
               where: { id: userCouponId },
               data: { isRedeem: true },
             });
           }
-        }
 
-        // Create order with proper status
-        return await tx.order.create({
-          data: {
-            eventId,
-            userId,
-            totalPrice,
-            finalPrice,
-            status: orderStatus, // Use the determined status
-            details: {
-              create: {
-                quantity,
-                userCouponId,
-                tickets: {
-                  connect: { id: ticketId },
+          // Create order with proper status
+          return await tx.order.create({
+            data: {
+              eventId,
+              userId,
+              totalPrice,
+              finalPrice,
+              status: orderStatus, // Use the determined status
+              details: {
+                create: {
+                  quantity,
+                  userCouponId,
+                  tickets: {
+                    connect: { id: ticketId },
+                  },
                 },
               },
             },
-          },
-          include: {
-            details: {
-              include: {
-                tickets: true,
+            include: {
+              details: {
+                include: {
+                  tickets: true,
+                },
               },
             },
-          },
-        });
-      });
+          });
+        },
+        { timeout: 6000 }
+      );
 
       res.status(201).json({
         message: "Order created successfully",
