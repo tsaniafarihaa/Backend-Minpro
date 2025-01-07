@@ -13,7 +13,7 @@ export class OrderController {
         finalPrice,
         usePoints,
         useCoupon,
-        status,
+        status, // Add status to destructured parameters
       } = req.body;
       const userId = req.user?.id;
 
@@ -21,10 +21,11 @@ export class OrderController {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Check ticket availability
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
-          event: true,
+          event: true, // Include event to check if it's free
         },
       });
 
@@ -35,101 +36,68 @@ export class OrderController {
       }
 
       const isFreeTicket = ticket.price === 0;
+      // Use provided status or determine based on whether it's a free ticket
       const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
-      const order = await prisma.$transaction(
-        async (tx) => {
-          // Update ticket quantity
-          await tx.ticket.update({
-            where: { id: ticketId },
-            data: { quantity: { decrement: quantity } },
+      // Start transaction
+      const order = await prisma.$transaction(async (tx) => {
+        // Update ticket quantity
+        await tx.ticket.update({
+          where: { id: ticketId },
+          data: { quantity: { decrement: quantity } },
+        });
+
+        // Handle points redemption if not a free ticket
+        if (!isFreeTicket && usePoints) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { points: { decrement: 10000 } },
+          });
+        }
+
+        let userCouponId = null;
+        if (!isFreeTicket && useCoupon) {
+          // Get user's coupon
+          const user = await tx.user.findUnique({
+            where: { id: userId },
+            include: { usercoupon: true },
           });
 
-          // Handle points redemption if not a free ticket
-          if (!isFreeTicket && usePoints) {
-            await tx.user.update({
-              where: { id: userId },
-              data: { points: { decrement: 10000 } },
-            });
+          if (!user?.usercoupon) {
+            throw new Error("No coupon available");
           }
 
-          let userCouponId = null;
-          if (!isFreeTicket && useCoupon) {
-            // Get user's coupon
-            const user = await tx.user.findUnique({
-              where: { id: userId },
-              include: { usercoupon: true },
-            });
-
-            if (!user?.usercoupon) {
-              throw new Error("No coupon available");
-            }
-
-            if (user.usercoupon.isRedeem === true) {
-              throw new Error("Coupon already used");
-            }
-
-            // Check coupon limit for event
-            const couponUseCount = await tx.orderDetail.count({
-              where: {
-                order: {
-                  eventId,
-                  NOT: {
-                    status: "CANCELED",
-                  },
-                },
-                userCouponId: {
-                  not: null,
-                },
-              },
-            });
-
-            if (couponUseCount >= 10) {
-              throw new Error("Coupon limit reached for this event");
-            }
-
-            userCouponId = user.usercoupon.id;
-
-            // Update coupon to redeemed
-            await tx.userCoupon.update({
-              where: { id: userCouponId },
-              data: { isRedeem: true },
-            });
+          if (user.usercoupon.isRedeem === true) {
+            throw new Error("Coupon has already been used");
           }
 
-          // Create order with all the details
-          return await tx.order.create({
-            data: {
-              eventId,
-              userId,
-              totalPrice,
-              finalPrice,
-              status: orderStatus,
-              details: {
-                create: {
-                  quantity,
-                  userCouponId,
-                  tickets: {
-                    connect: { id: ticketId },
-                  },
+          // Check coupon limit for event
+          const couponUseCount = await tx.orderDetail.count({
+            where: {
+              order: {
+                eventId,
+                NOT: {
+                  status: "CANCELED",
                 },
               },
-            },
-            include: {
-              details: {
-                include: {
-                  tickets: true,
-                },
+              userCouponId: {
+                not: null,
               },
             },
           });
-        },
-        { timeout: 6000 }
-      );
 
-      res.status(201).json({
-        message: "Order created successfully",
-        data: order,
+          if (couponUseCount >= 10) {
+            throw new Error("Coupon limit reached for this event");
+          }
+
+          userCouponId = user.usercoupon.id;
+
+          // Update coupon to used status
+          await tx.userCoupon.update({
+            where: { id: userCouponId },
+            data: { isRedeem: true }, // Set to true when coupon is used
+          });
+        }
       });
     } catch (error) {
       console.error("Create order error:", error);

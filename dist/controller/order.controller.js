@@ -19,15 +19,17 @@ class OrderController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, } = req.body;
+                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, // Add status to destructured parameters
+                 } = req.body;
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
                 if (!eventId || !ticketId || !quantity || userId === undefined) {
                     return res.status(400).json({ message: "Missing required fields" });
                 }
+                // Check ticket availability
                 const ticket = yield prisma_1.default.ticket.findUnique({
                     where: { id: ticketId },
                     include: {
-                        event: true,
+                        event: true, // Include event to check if it's free
                     },
                 });
                 if (!ticket || ticket.quantity < quantity) {
@@ -36,7 +38,9 @@ class OrderController {
                         .json({ message: "Insufficient ticket quantity" });
                 }
                 const isFreeTicket = ticket.price === 0;
+                // Use provided status or determine based on whether it's a free ticket
                 const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
+                // Start transaction
                 const order = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     // Update ticket quantity
                     yield tx.ticket.update({
@@ -61,7 +65,7 @@ class OrderController {
                             throw new Error("No coupon available");
                         }
                         if (user.usercoupon.isRedeem === true) {
-                            throw new Error("Coupon already used");
+                            throw new Error("Coupon has already been used");
                         }
                         // Check coupon limit for event
                         const couponUseCount = yield tx.orderDetail.count({
@@ -81,43 +85,13 @@ class OrderController {
                             throw new Error("Coupon limit reached for this event");
                         }
                         userCouponId = user.usercoupon.id;
-                        // Update coupon to redeemed
+                        // Update coupon to used status
                         yield tx.userCoupon.update({
                             where: { id: userCouponId },
-                            data: { isRedeem: true },
+                            data: { isRedeem: true }, // Set to true when coupon is used
                         });
                     }
-                    // Create order with all the details
-                    return yield tx.order.create({
-                        data: {
-                            eventId,
-                            userId,
-                            totalPrice,
-                            finalPrice,
-                            status: orderStatus,
-                            details: {
-                                create: {
-                                    quantity,
-                                    userCouponId,
-                                    tickets: {
-                                        connect: { id: ticketId },
-                                    },
-                                },
-                            },
-                        },
-                        include: {
-                            details: {
-                                include: {
-                                    tickets: true,
-                                },
-                            },
-                        },
-                    });
-                }), { timeout: 6000 });
-                res.status(201).json({
-                    message: "Order created successfully",
-                    data: order,
-                });
+                }));
             }
             catch (error) {
                 console.error("Create order error:", error);
