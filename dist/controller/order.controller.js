@@ -19,8 +19,7 @@ class OrderController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, // Add status to destructured parameters
-                 } = req.body;
+                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, } = req.body;
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
                 if (!eventId || !ticketId || !quantity || userId === undefined) {
                     return res.status(400).json({ message: "Missing required fields" });
@@ -29,7 +28,7 @@ class OrderController {
                 const ticket = yield prisma_1.default.ticket.findUnique({
                     where: { id: ticketId },
                     include: {
-                        event: true, // Include event to check if it's free
+                        event: true,
                     },
                 });
                 if (!ticket || ticket.quantity < quantity) {
@@ -38,7 +37,6 @@ class OrderController {
                         .json({ message: "Insufficient ticket quantity" });
                 }
                 const isFreeTicket = ticket.price === 0;
-                // Use provided status or determine based on whether it's a free ticket
                 const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
                 // Start transaction
                 const order = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
@@ -47,55 +45,22 @@ class OrderController {
                         where: { id: ticketId },
                         data: { quantity: { decrement: quantity } },
                     });
-                    // Handle points redemption if not a free ticket
+                    let userCouponId = null;
+                    // Handle points redemption
                     if (!isFreeTicket && usePoints) {
+                        const user = yield tx.user.findUnique({
+                            where: { id: userId },
+                        });
+                        if (!user || user.points < 10000) {
+                            throw new Error("Insufficient points");
+                        }
                         yield tx.user.update({
                             where: { id: userId },
                             data: { points: { decrement: 10000 } },
                         });
                     }
-                    let userCouponId = null;
+                    // Handle coupon
                     if (!isFreeTicket && useCoupon) {
-                        // Check if user already used coupon for this event
-                        const existingCouponUse = yield tx.order.findFirst({
-                            where: {
-                                userId,
-                                eventId,
-                                details: {
-                                    some: {
-                                        userCouponId: {
-                                            not: null,
-                                        },
-                                    },
-                                },
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                        });
-                        if (existingCouponUse) {
-                            throw new Error("You have already used a coupon for this event");
-                        }
-                        // Check coupon limit for event
-                        const couponUseCount = yield tx.order.count({
-                            where: {
-                                eventId,
-                                details: {
-                                    some: {
-                                        userCouponId: {
-                                            not: null,
-                                        },
-                                    },
-                                },
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                        });
-                        if (couponUseCount >= 10) {
-                            throw new Error("Coupon limit reached for this event");
-                        }
-                        // If validations pass, get and use the coupon
                         const user = yield tx.user.findUnique({
                             where: { id: userId },
                             include: { usercoupon: true },
@@ -103,8 +68,20 @@ class OrderController {
                         if (!(user === null || user === void 0 ? void 0 : user.usercoupon)) {
                             throw new Error("No coupon available");
                         }
-                        if (user.usercoupon.isRedeem) {
-                            throw new Error("Coupon already used");
+                        if (user.usercoupon.isRedeem === true) {
+                            throw new Error("Coupon has already been used");
+                        }
+                        const couponUseCount = yield tx.orderDetail.count({
+                            where: {
+                                order: {
+                                    eventId,
+                                    NOT: { status: "CANCELED" },
+                                },
+                                userCouponId: { not: null },
+                            },
+                        });
+                        if (couponUseCount >= 10) {
+                            throw new Error("Coupon limit reached for this event");
                         }
                         userCouponId = user.usercoupon.id;
                         yield tx.userCoupon.update({
@@ -112,14 +89,14 @@ class OrderController {
                             data: { isRedeem: true },
                         });
                     }
-                    // Create order with proper status
+                    // Create order
                     return yield tx.order.create({
                         data: {
-                            eventId,
                             userId,
+                            eventId,
+                            status: orderStatus,
                             totalPrice,
                             finalPrice,
-                            status: orderStatus, // Use the determined status
                             details: {
                                 create: {
                                     quantity,
@@ -138,21 +115,22 @@ class OrderController {
                             },
                         },
                     });
-                }), { timeout: 6000 });
-                res.status(201).json({
+                }));
+                return res.status(201).json({
                     message: "Order created successfully",
                     data: order,
                 });
             }
             catch (error) {
                 console.error("Create order error:", error);
-                res.status(500).json({
+                return res.status(500).json({
                     message: "Failed to create order",
                     error: error instanceof Error ? error.message : "Unknown error",
                 });
             }
         });
     }
+    // Rest of the methods remain the same...
     getCouponCount(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -191,7 +169,6 @@ class OrderController {
                         },
                     },
                 });
-                console.log(findHistoryUserCoupon, "findHistoryUserCoupon");
                 if (!findHistoryUserCoupon) {
                     return res.status(200).json({ canUseCoupon: true });
                 }
@@ -200,7 +177,7 @@ class OrderController {
                 }
             }
             catch (error) {
-                res.status(500).json({ message: "Failed to get coupon count" });
+                res.status(500).json({ message: "Failed to check coupon status" });
             }
         });
     }
@@ -222,36 +199,6 @@ class OrderController {
                 });
                 if (!order) {
                     return res.status(404).json({ message: "Order not found" });
-                }
-                res.status(200).json(order);
-            }
-            catch (error) {
-                res.status(500).json({ message: "Failed to fetch order" });
-            }
-        });
-    }
-    checkUserAllowedBuyEvent(req, res) {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            try {
-                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-                const eventId = Number(req.params.eventId);
-                const order = yield prisma_1.default.order.findFirst({
-                    where: {
-                        userId,
-                        event: {
-                            id: eventId,
-                        },
-                    },
-                    include: {
-                        event: true,
-                        details: {
-                            include: { tickets: true },
-                        },
-                    },
-                });
-                if (order) {
-                    return res.status(400).json({ message: "User has been buy event" });
                 }
                 res.status(200).json(order);
             }
@@ -326,14 +273,12 @@ class OrderController {
                         data: { status },
                     });
                     if (status === "CANCELED") {
-                        // Restore tickets
                         for (const detail of order.details) {
                             yield tx.ticket.update({
                                 where: { id: detail.tickets[0].id },
                                 data: { quantity: { increment: detail.quantity } },
                             });
                         }
-                        // Restore points
                         const pointsUsed = order.totalPrice - order.finalPrice;
                         if (pointsUsed > 0) {
                             yield tx.user.update({
@@ -347,6 +292,38 @@ class OrderController {
             }
             catch (error) {
                 res.status(500).json({ message: "Failed to update order status" });
+            }
+        });
+    }
+    checkUserAllowedBuyEvent(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
+                const eventId = Number(req.params.eventId);
+                const order = yield prisma_1.default.order.findFirst({
+                    where: {
+                        userId,
+                        event: {
+                            id: eventId,
+                        },
+                    },
+                    include: {
+                        event: true,
+                        details: {
+                            include: { tickets: true },
+                        },
+                    },
+                });
+                if (order) {
+                    return res.status(400).json({
+                        message: "User has already purchased tickets for this event",
+                    });
+                }
+                res.status(200).json(null);
+            }
+            catch (error) {
+                res.status(500).json({ message: "Failed to check user purchase status" });
             }
         });
     }

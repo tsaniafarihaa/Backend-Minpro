@@ -45,7 +45,7 @@ model Promotor {
 
 model UserCoupon {
   id          Int           @id @default(autoincrement())
-  isRedeem    Boolean       @default(true)
+  isRedeem    Boolean       @default(false)
   percentage  Float         @default(0.0)
   expiredAt   DateTime
   orderdetail OrderDetail[]

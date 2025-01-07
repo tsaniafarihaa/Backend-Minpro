@@ -23,11 +23,11 @@ class MidtransService {
   private readonly snap: any;
 
   constructor() {
-    // Sandbox configuration
     const config = {
       isProduction: false,
       serverKey: process.env.MIDTRANS_SERVER_KEY,
       clientKey: process.env.MIDTRANS_CLIENT_KEY,
+      timeoutMs: 30000, // Add timeout
     };
 
     this.core = new midtransClient.CoreApi(config);

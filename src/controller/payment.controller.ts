@@ -13,10 +13,6 @@ export class PaymentController {
       const { orderId } = req.body;
       const userId = req.user?.id;
 
-      if (!orderId || !userId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
       const order = await prisma.order.findFirst({
         where: {
           id: Number(orderId),
@@ -24,75 +20,33 @@ export class PaymentController {
           status: "PENDING",
         },
         include: {
-          user: {
-            include: { usercoupon: true },
-          },
+          user: true,
           event: true,
           details: {
             include: {
               tickets: true,
-              UserCoupon: true,
             },
           },
         },
       });
 
       if (!order || !order.event || !order.user) {
-        return res
-          .status(404)
-          .json({ message: "Order not found or incomplete" });
+        return res.status(404).json({ message: "Order not found" });
       }
 
       const orderDetail = order.details[0];
-      if (orderDetail?.userCouponId) {
-        const couponUseCount = await prisma.orderDetail.count({
-          where: {
-            order: {
-              eventId: order.event.id,
-              NOT: {
-                status: "CANCELED",
-              },
-            },
-            userCouponId: {
-              not: null,
-            },
-          },
-        });
-
-        if (couponUseCount >= 10) {
-          return res.status(400).json({
-            message: "Coupon limit reached for this event",
-          });
-        }
-
-        const existingCouponUse = await prisma.orderDetail.findFirst({
-          where: {
-            order: {
-              eventId: order.event.id,
-              userId: userId,
-              NOT: {
-                status: "CANCELED",
-              },
-            },
-            userCouponId: {
-              not: null,
-            },
-          },
-        });
-
-        if (existingCouponUse) {
-          return res.status(400).json({
-            message: "You have already used a coupon for this event",
-          });
-        }
-      }
-
-      const ticket = orderDetail?.tickets[0];
-      if (!orderDetail || !ticket) {
+      if (!orderDetail || !orderDetail.tickets[0]) {
         return res.status(404).json({ message: "Ticket details not found" });
       }
 
-      let eachPrice = order.finalPrice / orderDetail.quantity;
+      const ticket = orderDetail.tickets[0];
+      const eachPrice = Math.floor(order.finalPrice / orderDetail.quantity);
+
+      // Truncate title to prevent "Name too long" error
+      const itemName = `${ticket.category} - ${order.event.title}`.substring(
+        0,
+        50
+      );
 
       const transaction = await midtransService.createTransaction({
         orderId: `ORDER-${order.id}`,
@@ -102,7 +56,7 @@ export class PaymentController {
             id: ticket.id.toString(),
             price: eachPrice,
             quantity: orderDetail.quantity,
-            name: `${order.event.title} - ${ticket.category}`,
+            name: itemName,
           },
         ],
         customerDetails: {
@@ -133,7 +87,7 @@ export class PaymentController {
       console.error("Payment creation error:", error);
       return res.status(500).json({
         message: "Failed to create payment",
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -173,19 +127,19 @@ export class PaymentController {
         throw new Error("Order not found");
       }
 
-      await prisma.$transaction(async (tx) => {
-        await tx.order.update({
-          where: { id: Number(orderId) },
-          data: { status },
-        });
-
-        if (status === "CANCELED" && order.details[0]?.userCouponId) {
-          await tx.userCoupon.update({
-            where: { id: order.details[0].userCouponId },
-            data: { isRedeem: true },
-          });
-        }
+      // Update order status
+      await prisma.order.update({
+        where: { id: Number(orderId) },
+        data: { status },
       });
+
+      // If order is canceled and used a coupon, revert coupon usage
+      if (status === "CANCELED" && order.details[0]?.userCouponId) {
+        await prisma.userCoupon.update({
+          where: { id: order.details[0].userCouponId },
+          data: { isRedeem: true },
+        });
+      }
 
       return res.status(200).json({
         message: "Notification processed",
@@ -196,130 +150,6 @@ export class PaymentController {
     } catch (error) {
       console.error("Notification error:", error);
       return res.status(500).json({ message: "Failed to handle notification" });
-    }
-  }
-
-  async checkCouponAvailability(req: Request, res: Response) {
-    try {
-      const eventId = parseInt(req.params.eventId);
-      const userId = req.user?.id;
-
-      if (!eventId || !userId) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { usercoupon: true },
-      });
-
-      if (!user?.usercoupon) {
-        return res.status(200).json({
-          canUseCoupon: false,
-          couponUsageCount: 0,
-          remainingCoupons: 0,
-          message: "No coupon available",
-        });
-      }
-
-      if (user.usercoupon.isRedeem) {
-        return res.status(200).json({
-          canUseCoupon: false,
-          couponUsageCount: 0,
-          remainingCoupons: 0,
-          message: "Your coupon has already been used",
-        });
-      }
-
-      // Check if user has ever used any coupon
-      const existingCouponUse = await prisma.orderDetail.findFirst({
-        where: {
-          order: {
-            userId: userId,
-            NOT: {
-              status: "CANCELED",
-            },
-          },
-          userCouponId: {
-            not: null,
-          },
-        },
-      });
-
-      if (existingCouponUse) {
-        return res.status(200).json({
-          canUseCoupon: false,
-          couponUsageCount: 0,
-          remainingCoupons: 0,
-          message: "You have already used your one-time coupon",
-        });
-      }
-
-      const couponUseCount = await prisma.orderDetail.count({
-        where: {
-          order: {
-            eventId: eventId,
-            NOT: {
-              status: "CANCELED",
-            },
-          },
-          userCouponId: {
-            not: null,
-          },
-        },
-      });
-
-      return res.status(200).json({
-        canUseCoupon: !existingCouponUse && couponUseCount < 10,
-        couponUsageCount: couponUseCount,
-        remainingCoupons: Math.max(0, 10 - couponUseCount),
-      });
-    } catch (error) {
-      console.error("Coupon check error:", error);
-      return res.status(500).json({
-        message: "Failed to check coupon availability",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-
-  async updateOrderStatus(req: Request, res: Response) {
-    try {
-      const { orderId, status } = req.body;
-
-      if (!orderId || !status) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      const order = await prisma.order.findUnique({
-        where: { id: Number(orderId) },
-        include: {
-          details: true,
-        },
-      });
-
-      if (!order) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-
-      await prisma.order.update({
-        where: { id: Number(orderId) },
-        data: {
-          status: status as "PENDING" | "PAID" | "CANCELED",
-        },
-      });
-
-      if (status === "CANCELED" && order.details[0]?.userCouponId) {
-        await prisma.userCoupon.update({
-          where: { id: order.details[0].userCouponId },
-          data: { isRedeem: true },
-        });
-      }
-
-      return res.status(200).json({ message: "Order status updated" });
-    } catch (error) {
-      console.error("Update status error:", error);
-      return res.status(500).json({ message: "Failed to update order status" });
     }
   }
 
@@ -355,47 +185,233 @@ export class PaymentController {
   async checkUserCoupon(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
-      const eventId = Number(req.params.eventId);
 
-      if (!userId || !eventId) {
-        return res.status(400).json({ message: "Missing required fields" });
+      if (!userId) {
+        return res.status(400).json({ message: "User not found" });
       }
 
-      // Check if user has ever used any coupon (for any event)
-      const anyExistingCouponUse = await prisma.order.findFirst({
-        where: {
-          userId,
-          details: {
-            some: {
-              userCouponId: {
-                not: null,
-              },
-            },
-          },
-          NOT: {
-            status: "CANCELED",
-          },
-        },
-      });
-
-      // Check if user has a valid coupon
-      const userCoupon = await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         include: { usercoupon: true },
       });
 
-      return res.status(200).json({
-        canUseCoupon:
-          !anyExistingCouponUse && userCoupon?.usercoupon?.isRedeem === true,
-        message: !userCoupon?.usercoupon?.isRedeem
-          ? "Your coupon has already been used"
-          : anyExistingCouponUse
-          ? "You have already used a coupon for this event"
-          : undefined,
-      });
+      const canUseCoupon = Boolean(
+        user?.usercoupon && !user.usercoupon.isRedeem && user?.percentage
+      );
+
+      return res.status(200).json({ canUseCoupon });
     } catch (error) {
       console.error("Check user coupon error:", error);
-      return res.status(500).json({ message: "Failed to check coupon status" });
+      return res.status(500).json({ message: "Failed to check user coupon" });
+    }
+  }
+
+  async checkCouponAvailability(req: Request, res: Response) {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const userId = req.user?.id;
+
+      if (!eventId || !userId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { usercoupon: true },
+      });
+
+      // Tambahkan log ini
+      console.log("User data:", {
+        userId,
+        hasCoupon: !!user?.usercoupon,
+        isRedeem: user?.usercoupon?.isRedeem,
+        percentage: user?.percentage,
+      });
+
+      if (!user?.usercoupon) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: 0,
+          remainingCoupons: 0,
+          message: "No coupon available",
+        });
+      }
+
+      // Check if coupon is already used
+      if (user.usercoupon.isRedeem === true) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: 0,
+          remainingCoupons: 0,
+          message: "Your coupon has already been used",
+        });
+      }
+
+      // Count total coupon usage for this event
+      const couponUseCount = await prisma.orderDetail.count({
+        where: {
+          order: {
+            eventId: eventId,
+            NOT: {
+              status: "CANCELED",
+            },
+          },
+          userCouponId: {
+            not: null,
+          },
+        },
+      });
+
+      // Check if event has reached coupon limit
+      if (couponUseCount >= 10) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: couponUseCount,
+          remainingCoupons: 0,
+          message: "Event has reached maximum coupon usage",
+        });
+      }
+
+      return res.status(200).json({
+        canUseCoupon: true,
+        couponUsageCount: couponUseCount,
+        remainingCoupons: Math.max(0, 10 - couponUseCount),
+      });
+    } catch (error) {
+      console.error("Coupon check error:", error);
+      return res.status(500).json({
+        message: "Failed to check coupon availability",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  async updateOrderStatus(req: Request, res: Response) {
+    try {
+      const { orderId, status } = req.body;
+
+      if (!orderId || !status) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id: Number(orderId) },
+        include: {
+          details: true,
+        },
+      });
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: Number(orderId) },
+        data: {
+          status: status as "PENDING" | "PAID" | "CANCELED",
+        },
+      });
+
+      // If order is canceled and used a coupon, revert coupon usage
+      if (status === "CANCELED" && order.details[0]?.userCouponId) {
+        await prisma.userCoupon.update({
+          where: { id: order.details[0].userCouponId },
+          data: { isRedeem: true },
+        });
+      }
+
+      return res.status(200).json({
+        message: "Order status updated",
+        order: updatedOrder,
+      });
+    } catch (error) {
+      console.error("Update order status error:", error);
+      return res.status(500).json({ message: "Failed to update order status" });
+    }
+  }
+
+  async sendSuccessEmail(req: Request, res: Response) {
+    try {
+      const { orderId } = req.params;
+
+      if (!orderId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const userId = req.user?.id;
+
+      const userData = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!userData || !userData.email) {
+        return res.status(400).json({ message: "User data not found" });
+      }
+
+      const orderData = await prisma.order.findFirst({
+        where: {
+          id: Number(orderId),
+        },
+        include: {
+          event: true,
+          details: {
+            include: {
+              tickets: true,
+              UserCoupon: true,
+            },
+          },
+        },
+      });
+
+      if (!orderData || !orderData.event) {
+        return res.status(404).json({ message: "Order data not found" });
+      }
+
+      const templatePath = path.join(
+        __dirname,
+        "../templates",
+        "orderSuccess.hbs"
+      );
+      const templateSource = fs.readFileSync(templatePath, "utf-8");
+      const compiledTemplate = handlebars.compile(templateSource);
+
+      const formattedDate = format(
+        new Date(orderData.event.date ?? ""),
+        "dd MMMM yyyy HH:mm a"
+      );
+
+      const html = compiledTemplate({
+        username: userData.username,
+        concertName: orderData.event.title,
+        categoryName: orderData.details[0]?.tickets[0]?.category,
+        concertDate: formattedDate,
+        concertLocation: orderData.event.location,
+        discountApplied: orderData.details[0]?.UserCoupon ? "Yes" : "No",
+        finalPrice: orderData.finalPrice.toLocaleString("id-ID", {
+          style: "currency",
+          currency: "IDR",
+        }),
+      });
+
+      await transporter.sendMail({
+        from: process.env.MAIL_USER,
+        to: userData.email,
+        subject: "Your TIKO Order Confirmation",
+        html,
+      });
+
+      return res.status(200).json({
+        message: "Success",
+        detail: "Order confirmation email sent successfully",
+      });
+    } catch (error) {
+      console.error("Send success email error:", error);
+      return res.status(500).json({
+        message: "Failed to send email",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 
@@ -440,84 +456,6 @@ export class PaymentController {
       console.error("Get order status error:", error);
       return res.status(500).json({
         message: "Failed to get payment status",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-
-  async sendSuccessEmail(req: Request, res: Response) {
-    try {
-      const { orderId } = req.params;
-      const userId = req.user?.id;
-
-      const userData = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-
-      if (!userData?.email) {
-        return res.status(400).json({ message: "User email not found" });
-      }
-
-      const orderData = await prisma.order.findFirst({
-        where: {
-          id: Number(orderId),
-        },
-        include: {
-          event: true,
-          details: {
-            include: {
-              tickets: true,
-              UserCoupon: true,
-            },
-          },
-        },
-      });
-
-      if (!orderData?.event) {
-        return res.status(404).json({ message: "Order data not found" });
-      }
-
-      const templatePath = path.join(
-        __dirname,
-        "../templates",
-        "orderSuccess.hbs"
-      );
-      const templateSource = fs.readFileSync(templatePath, "utf-8");
-      const compiledTemplate = handlebars.compile(templateSource);
-
-      const formattedDate = format(
-        new Date(orderData.event.date ?? ""),
-        "dd MMMM yyyy HH:mm a"
-      );
-
-      const html = compiledTemplate({
-        username: userData.username,
-        concertName: orderData.event.title,
-        categoryName: orderData.details[0]?.tickets[0]?.category,
-        concertDate: formattedDate,
-        concertLocation: orderData.event.location,
-        discountApplied: orderData.details[0]?.UserCoupon ? "Yes" : "No",
-        finalPrice: orderData.finalPrice.toLocaleString("id-ID", {
-          style: "currency",
-          currency: "IDR",
-        }),
-      });
-
-      await transporter.sendMail({
-        from: process.env.MAIL_USER,
-        to: userData.email,
-        subject: "Your Order Confirmation",
-        html,
-      });
-
-      return res.status(200).json({
-        message: "Success",
-        detail: "Order confirmation email sent successfully",
-      });
-    } catch (error) {
-      console.error("Send success email error:", error);
-      return res.status(500).json({
-        message: "Failed to send email",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
