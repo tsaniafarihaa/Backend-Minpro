@@ -58,6 +58,28 @@ export class OrderController {
         // Handle coupon usage if not a free ticket
         let userCouponId = null;
         if (!isFreeTicket && useCoupon) {
+          // Check if user has already used coupon for this event
+          const existingCouponUse = await tx.order.findFirst({
+            where: {
+              eventId,
+              userId,
+              details: {
+                some: {
+                  userCouponId: {
+                    not: null,
+                  },
+                },
+              },
+              NOT: {
+                status: "CANCELED",
+              },
+            },
+          });
+
+          if (existingCouponUse) {
+            throw new Error("You have already used a coupon for this event");
+          }
+
           const couponUsersCount = await tx.order.count({
             where: {
               eventId,
@@ -66,22 +88,27 @@ export class OrderController {
                   UserCoupon: { isNot: null },
                 },
               },
+              NOT: {
+                status: "CANCELED",
+              },
             },
           });
 
-          if (couponUsersCount < 10) {
-            const user = await tx.user.findUnique({
-              where: { id: userId },
-              include: { usercoupon: true },
-            });
+          if (couponUsersCount >= 10) {
+            throw new Error("Coupon limit reached for this event");
+          }
 
-            if (user?.usercoupon) {
-              userCouponId = user.usercoupon.id;
-              await tx.userCoupon.update({
-                where: { id: userCouponId },
-                data: { isRedeem: true },
-              });
-            }
+          const user = await tx.user.findUnique({
+            where: { id: userId },
+            include: { usercoupon: true },
+          });
+
+          if (user?.usercoupon) {
+            userCouponId = user.usercoupon.id;
+            await tx.userCoupon.update({
+              where: { id: userCouponId },
+              data: { isRedeem: true },
+            });
           }
         }
 

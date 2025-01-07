@@ -43,7 +43,7 @@ export class PaymentController {
           .json({ message: "Order not found or incomplete" });
       }
 
-      // Check coupon usage if the order uses a coupon
+      // cek kupon
       const orderDetail = order.details[0];
       if (orderDetail?.userCouponId) {
         // Verify user has valid coupon
@@ -239,27 +239,36 @@ export class PaymentController {
   async checkUserCoupon(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
+      const eventId = Number(req.params.eventId);
 
-      if (!userId) {
-        return res.status(400).json({ message: "User not found" });
+      if (!userId || !eventId) {
+        return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { usercoupon: true },
+      const existingCouponUse = await prisma.order.findFirst({
+        where: {
+          userId,
+          eventId,
+          details: {
+            some: {
+              userCouponId: {
+                not: null,
+              },
+            },
+          },
+          NOT: {
+            status: "CANCELED",
+          },
+        },
       });
 
-      const canUseCoupon = Boolean(
-        user?.usercoupon?.isRedeem && user?.percentage
-      );
-
-      return res.status(200).json({ canUseCoupon });
+      return res.status(200).json({
+        canUseCoupon: !existingCouponUse,
+      });
     } catch (error) {
-      console.error("Check user coupon error:", error);
-      return res.status(500).json({ message: "Failed to check user coupon" });
+      res.status(500).json({ message: "Failed to check coupon status" });
     }
   }
-
   async checkCouponAvailability(req: Request, res: Response) {
     try {
       const eventId = parseInt(req.params.eventId);
