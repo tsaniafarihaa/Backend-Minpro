@@ -18,6 +18,7 @@ class DashboardRouter {
         this.router.get("/getTotalRevenue", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getTotalRevenue);
         //Routing untuk mendapatkan si event beserta pendapatan nya berdasarkan promotor yg telah login
         this.router.get("/promotor/detailEventDashboard", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getPromotorEvents);
+        this.router.get("/getgrouprevenue", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getRevenueGroupedByPeriod);
         //Routing untuk mendapatkan si event beserta pendapatan nya berdasarkan ID
         // this.router.get(
         //   "/getEventDasboardbyID/:eventId",

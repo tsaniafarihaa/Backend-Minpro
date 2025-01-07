@@ -13,7 +13,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OAuthController = void 0;
-const prisma_1 = __importDefault(require("../prisma")); // Adjust the path as needed
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const prisma_1 = __importDefault(require("../prisma"));
 const supabase_1 = require("../supabase");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const crypto_1 = require("crypto");
