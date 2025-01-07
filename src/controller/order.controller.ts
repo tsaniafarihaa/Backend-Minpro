@@ -56,33 +56,65 @@ export class OrderController {
             });
           }
 
-          // Handle coupon usage if not a free ticket
           let userCouponId = null;
           if (!isFreeTicket && useCoupon) {
-            const couponUsersCount = await tx.order.count({
+            // Check if user already used coupon for this event
+            const existingCouponUse = await tx.order.findFirst({
               where: {
+                userId,
                 eventId,
                 details: {
                   some: {
-                    UserCoupon: { isNot: null },
+                    userCouponId: {
+                      not: null,
+                    },
                   },
+                },
+                NOT: {
+                  status: "CANCELED",
                 },
               },
             });
 
-            if (couponUsersCount < 10) {
-              const user = await tx.user.findUnique({
-                where: { id: userId },
-                include: { usercoupon: true },
-              });
+            if (existingCouponUse) {
+              throw new Error("You have already used a coupon for this event");
+            }
 
-              if (user?.usercoupon) {
-                userCouponId = user.usercoupon.id;
-                await tx.userCoupon.update({
-                  where: { id: userCouponId },
-                  data: { isRedeem: true },
-                });
-              }
+            // Check coupon limit for event
+            const couponUseCount = await tx.order.count({
+              where: {
+                eventId,
+                details: {
+                  some: {
+                    userCouponId: {
+                      not: null,
+                    },
+                  },
+                },
+                NOT: {
+                  status: "CANCELED",
+                },
+              },
+            });
+
+            if (couponUseCount >= 10) {
+              throw new Error("Coupon limit reached for this event");
+            }
+
+            // If validations pass, get and use the coupon
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+              include: { usercoupon: true },
+            });
+
+            if (user?.usercoupon?.isRedeem) {
+              userCouponId = user.usercoupon.id;
+              await tx.userCoupon.update({
+                where: { id: userCouponId },
+                data: { isRedeem: false },
+              });
+            } else {
+              throw new Error("No valid coupon available");
             }
           }
 
