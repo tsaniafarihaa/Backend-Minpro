@@ -19,17 +19,15 @@ class OrderController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, // Add status to destructured parameters
-                 } = req.body;
+                const { eventId, ticketId, quantity, totalPrice, finalPrice, usePoints, useCoupon, status, } = req.body;
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
                 if (!eventId || !ticketId || !quantity || userId === undefined) {
                     return res.status(400).json({ message: "Missing required fields" });
                 }
-                // Check ticket availability
                 const ticket = yield prisma_1.default.ticket.findUnique({
                     where: { id: ticketId },
                     include: {
-                        event: true, // Include event to check if it's free
+                        event: true,
                     },
                 });
                 if (!ticket || ticket.quantity < quantity) {
@@ -38,9 +36,7 @@ class OrderController {
                         .json({ message: "Insufficient ticket quantity" });
                 }
                 const isFreeTicket = ticket.price === 0;
-                // Use provided status or determine based on whether it's a free ticket
                 const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
-                // Start transaction
                 const order = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     // Update ticket quantity
                     yield tx.ticket.update({
@@ -56,46 +52,7 @@ class OrderController {
                     }
                     let userCouponId = null;
                     if (!isFreeTicket && useCoupon) {
-                        // Check if user already used coupon for this event
-                        const existingCouponUse = yield tx.order.findFirst({
-                            where: {
-                                userId,
-                                eventId,
-                                details: {
-                                    some: {
-                                        userCouponId: {
-                                            not: null,
-                                        },
-                                    },
-                                },
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                        });
-                        if (existingCouponUse) {
-                            throw new Error("You have already used a coupon for this event");
-                        }
-                        // Check coupon limit for event
-                        const couponUseCount = yield tx.order.count({
-                            where: {
-                                eventId,
-                                details: {
-                                    some: {
-                                        userCouponId: {
-                                            not: null,
-                                        },
-                                    },
-                                },
-                                NOT: {
-                                    status: "CANCELED",
-                                },
-                            },
-                        });
-                        if (couponUseCount >= 10) {
-                            throw new Error("Coupon limit reached for this event");
-                        }
-                        // If validations pass, get and use the coupon
+                        // Get user's coupon
                         const user = yield tx.user.findUnique({
                             where: { id: userId },
                             include: { usercoupon: true },
@@ -103,23 +60,41 @@ class OrderController {
                         if (!(user === null || user === void 0 ? void 0 : user.usercoupon)) {
                             throw new Error("No coupon available");
                         }
-                        if (user.usercoupon.isRedeem) {
+                        if (user.usercoupon.isRedeem === true) {
                             throw new Error("Coupon already used");
                         }
+                        // Check coupon limit for event
+                        const couponUseCount = yield tx.orderDetail.count({
+                            where: {
+                                order: {
+                                    eventId,
+                                    NOT: {
+                                        status: "CANCELED",
+                                    },
+                                },
+                                userCouponId: {
+                                    not: null,
+                                },
+                            },
+                        });
+                        if (couponUseCount >= 10) {
+                            throw new Error("Coupon limit reached for this event");
+                        }
                         userCouponId = user.usercoupon.id;
+                        // Update coupon to redeemed
                         yield tx.userCoupon.update({
                             where: { id: userCouponId },
                             data: { isRedeem: true },
                         });
                     }
-                    // Create order with proper status
+                    // Create order with all the details
                     return yield tx.order.create({
                         data: {
                             eventId,
                             userId,
                             totalPrice,
                             finalPrice,
-                            status: orderStatus, // Use the determined status
+                            status: orderStatus,
                             details: {
                                 create: {
                                     quantity,

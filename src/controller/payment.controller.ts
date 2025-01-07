@@ -222,7 +222,8 @@ export class PaymentController {
         });
       }
 
-      if (user.usercoupon.isRedeem) {
+      // Check if coupon is already redeemed
+      if (user.usercoupon.isRedeem === true) {
         return res.status(200).json({
           canUseCoupon: false,
           couponUsageCount: 0,
@@ -231,30 +232,7 @@ export class PaymentController {
         });
       }
 
-      // Check if user has ever used any coupon
-      const existingCouponUse = await prisma.orderDetail.findFirst({
-        where: {
-          order: {
-            userId: userId,
-            NOT: {
-              status: "CANCELED",
-            },
-          },
-          userCouponId: {
-            not: null,
-          },
-        },
-      });
-
-      if (existingCouponUse) {
-        return res.status(200).json({
-          canUseCoupon: false,
-          couponUsageCount: 0,
-          remainingCoupons: 0,
-          message: "You have already used your one-time coupon",
-        });
-      }
-
+      // Count total coupon usage for this event
       const couponUseCount = await prisma.orderDetail.count({
         where: {
           order: {
@@ -269,8 +247,18 @@ export class PaymentController {
         },
       });
 
+      // Check if event has reached coupon limit
+      if (couponUseCount >= 10) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: couponUseCount,
+          remainingCoupons: 0,
+          message: "Event has reached maximum coupon usage",
+        });
+      }
+
       return res.status(200).json({
-        canUseCoupon: !existingCouponUse && couponUseCount < 10,
+        canUseCoupon: true,
         couponUsageCount: couponUseCount,
         remainingCoupons: Math.max(0, 10 - couponUseCount),
       });

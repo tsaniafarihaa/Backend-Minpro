@@ -13,7 +13,7 @@ export class OrderController {
         finalPrice,
         usePoints,
         useCoupon,
-        status, // Add status to destructured parameters
+        status,
       } = req.body;
       const userId = req.user?.id;
 
@@ -21,11 +21,10 @@ export class OrderController {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // Check ticket availability
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
-          event: true, // Include event to check if it's free
+          event: true,
         },
       });
 
@@ -36,10 +35,8 @@ export class OrderController {
       }
 
       const isFreeTicket = ticket.price === 0;
-      // Use provided status or determine based on whether it's a free ticket
       const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
-      // Start transaction
       const order = await prisma.$transaction(
         async (tx) => {
           // Update ticket quantity
@@ -58,50 +55,7 @@ export class OrderController {
 
           let userCouponId = null;
           if (!isFreeTicket && useCoupon) {
-            // Check if user already used coupon for this event
-            const existingCouponUse = await tx.order.findFirst({
-              where: {
-                userId,
-                eventId,
-                details: {
-                  some: {
-                    userCouponId: {
-                      not: null,
-                    },
-                  },
-                },
-                NOT: {
-                  status: "CANCELED",
-                },
-              },
-            });
-
-            if (existingCouponUse) {
-              throw new Error("You have already used a coupon for this event");
-            }
-
-            // Check coupon limit for event
-            const couponUseCount = await tx.order.count({
-              where: {
-                eventId,
-                details: {
-                  some: {
-                    userCouponId: {
-                      not: null,
-                    },
-                  },
-                },
-                NOT: {
-                  status: "CANCELED",
-                },
-              },
-            });
-
-            if (couponUseCount >= 10) {
-              throw new Error("Coupon limit reached for this event");
-            }
-
-            // If validations pass, get and use the coupon
+            // Get user's coupon
             const user = await tx.user.findUnique({
               where: { id: userId },
               include: { usercoupon: true },
@@ -111,25 +65,46 @@ export class OrderController {
               throw new Error("No coupon available");
             }
 
-            if (user.usercoupon.isRedeem) {
+            if (user.usercoupon.isRedeem === true) {
               throw new Error("Coupon already used");
             }
 
+            // Check coupon limit for event
+            const couponUseCount = await tx.orderDetail.count({
+              where: {
+                order: {
+                  eventId,
+                  NOT: {
+                    status: "CANCELED",
+                  },
+                },
+                userCouponId: {
+                  not: null,
+                },
+              },
+            });
+
+            if (couponUseCount >= 10) {
+              throw new Error("Coupon limit reached for this event");
+            }
+
             userCouponId = user.usercoupon.id;
+
+            // Update coupon to redeemed
             await tx.userCoupon.update({
               where: { id: userCouponId },
               data: { isRedeem: true },
             });
           }
 
-          // Create order with proper status
+          // Create order with all the details
           return await tx.order.create({
             data: {
               eventId,
               userId,
               totalPrice,
               finalPrice,
-              status: orderStatus, // Use the determined status
+              status: orderStatus,
               details: {
                 create: {
                   quantity,
