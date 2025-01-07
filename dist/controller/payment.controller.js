@@ -27,9 +27,6 @@ class PaymentController {
             try {
                 const { orderId } = req.body;
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id;
-                if (!orderId || !userId) {
-                    return res.status(400).json({ message: "Missing required fields" });
-                }
                 const order = yield prisma_1.default.order.findFirst({
                     where: {
                         id: Number(orderId),
@@ -37,30 +34,26 @@ class PaymentController {
                         status: "PENDING",
                     },
                     include: {
-                        user: {
-                            include: { usercoupon: true },
-                        },
+                        user: true,
                         event: true,
                         details: {
                             include: {
                                 tickets: true,
-                                UserCoupon: true,
                             },
                         },
                     },
                 });
                 if (!order || !order.event || !order.user) {
-                    return res
-                        .status(404)
-                        .json({ message: "Order not found or incomplete" });
+                    return res.status(404).json({ message: "Order not found" });
                 }
-                // Get the first order detail and ticket
                 const orderDetail = order.details[0];
                 if (!orderDetail || !orderDetail.tickets[0]) {
                     return res.status(404).json({ message: "Ticket details not found" });
                 }
                 const ticket = orderDetail.tickets[0];
-                const eachPrice = order.finalPrice / orderDetail.quantity;
+                const eachPrice = Math.floor(order.finalPrice / orderDetail.quantity);
+                // Truncate title to prevent "Name too long" error
+                const itemName = `${ticket.category} - ${order.event.title}`.substring(0, 50);
                 const transaction = yield midtrans_1.midtransService.createTransaction({
                     orderId: `ORDER-${order.id}`,
                     amount: order.finalPrice,
@@ -69,7 +62,7 @@ class PaymentController {
                             id: ticket.id.toString(),
                             price: eachPrice,
                             quantity: orderDetail.quantity,
-                            name: `${order.event.title} - ${ticket.category}`,
+                            name: itemName,
                         },
                     ],
                     customerDetails: {

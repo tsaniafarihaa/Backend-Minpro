@@ -14,11 +14,11 @@ exports.midtransService = void 0;
 const midtransClient = require("midtrans-client");
 class MidtransService {
     constructor() {
-        // Sandbox configuration
         const config = {
             isProduction: false,
             serverKey: process.env.MIDTRANS_SERVER_KEY,
             clientKey: process.env.MIDTRANS_CLIENT_KEY,
+            timeoutMs: 30000, // Add timeout
         };
         this.core = new midtransClient.CoreApi(config);
         this.snap = new midtransClient.Snap(config);

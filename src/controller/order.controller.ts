@@ -13,7 +13,7 @@ export class OrderController {
         finalPrice,
         usePoints,
         useCoupon,
-        status, // Add status to destructured parameters
+        status,
       } = req.body;
       const userId = req.user?.id;
 
@@ -25,7 +25,7 @@ export class OrderController {
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         include: {
-          event: true, // Include event to check if it's free
+          event: true,
         },
       });
 
@@ -36,7 +36,6 @@ export class OrderController {
       }
 
       const isFreeTicket = ticket.price === 0;
-      // Use provided status or determine based on whether it's a free ticket
       const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
       // Start transaction
@@ -47,17 +46,26 @@ export class OrderController {
           data: { quantity: { decrement: quantity } },
         });
 
-        // Handle points redemption if not a free ticket
+        let userCouponId = null;
+
+        // Handle points redemption
         if (!isFreeTicket && usePoints) {
+          const user = await tx.user.findUnique({
+            where: { id: userId },
+          });
+
+          if (!user || user.points < 10000) {
+            throw new Error("Insufficient points");
+          }
+
           await tx.user.update({
             where: { id: userId },
             data: { points: { decrement: 10000 } },
           });
         }
 
-        let userCouponId = null;
+        // Handle coupon
         if (!isFreeTicket && useCoupon) {
-          // Get user's coupon
           const user = await tx.user.findUnique({
             where: { id: userId },
             include: { usercoupon: true },
@@ -71,18 +79,13 @@ export class OrderController {
             throw new Error("Coupon has already been used");
           }
 
-          // Check coupon limit for event
           const couponUseCount = await tx.orderDetail.count({
             where: {
               order: {
                 eventId,
-                NOT: {
-                  status: "CANCELED",
-                },
+                NOT: { status: "CANCELED" },
               },
-              userCouponId: {
-                not: null,
-              },
+              userCouponId: { not: null },
             },
           });
 
@@ -92,22 +95,54 @@ export class OrderController {
 
           userCouponId = user.usercoupon.id;
 
-          // Update coupon to used status
           await tx.userCoupon.update({
             where: { id: userCouponId },
-            data: { isRedeem: true }, // Set to true when coupon is used
+            data: { isRedeem: true },
           });
         }
+
+        // Create order
+        return await tx.order.create({
+          data: {
+            userId,
+            eventId,
+            status: orderStatus,
+            totalPrice,
+            finalPrice,
+            details: {
+              create: {
+                quantity,
+                userCouponId,
+                tickets: {
+                  connect: { id: ticketId },
+                },
+              },
+            },
+          },
+          include: {
+            details: {
+              include: {
+                tickets: true,
+              },
+            },
+          },
+        });
+      });
+
+      return res.status(201).json({
+        message: "Order created successfully",
+        data: order,
       });
     } catch (error) {
       console.error("Create order error:", error);
-      res.status(500).json({
+      return res.status(500).json({
         message: "Failed to create order",
         error: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
 
+  // Rest of the methods remain the same...
   async getCouponCount(req: Request, res: Response) {
     try {
       const eventId = Number(req.params.eventId);
@@ -146,15 +181,13 @@ export class OrderController {
         },
       });
 
-      console.log(findHistoryUserCoupon, "findHistoryUserCoupon");
-
       if (!findHistoryUserCoupon) {
         return res.status(200).json({ canUseCoupon: true });
       } else {
         return res.status(200).json({ canUseCoupon: false });
       }
     } catch (error) {
-      res.status(500).json({ message: "Failed to get coupon count" });
+      res.status(500).json({ message: "Failed to check coupon status" });
     }
   }
 
@@ -176,36 +209,6 @@ export class OrderController {
 
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
-      }
-
-      res.status(200).json(order);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch order" });
-    }
-  }
-
-  async checkUserAllowedBuyEvent(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const eventId = Number(req.params.eventId);
-
-      const order = await prisma.order.findFirst({
-        where: {
-          userId,
-          event: {
-            id: eventId,
-          },
-        },
-        include: {
-          event: true,
-          details: {
-            include: { tickets: true },
-          },
-        },
-      });
-
-      if (order) {
-        return res.status(400).json({ message: "User has been buy event" });
       }
 
       res.status(200).json(order);
@@ -286,7 +289,6 @@ export class OrderController {
         });
 
         if (status === "CANCELED") {
-          // Restore tickets
           for (const detail of order.details) {
             await tx.ticket.update({
               where: { id: detail.tickets[0].id },
@@ -294,7 +296,6 @@ export class OrderController {
             });
           }
 
-          // Restore points
           const pointsUsed = order.totalPrice - order.finalPrice;
           if (pointsUsed > 0) {
             await tx.user.update({
@@ -308,6 +309,38 @@ export class OrderController {
       res.status(200).json({ message: "Order status updated successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to update order status" });
+    }
+  }
+
+  async checkUserAllowedBuyEvent(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const eventId = Number(req.params.eventId);
+
+      const order = await prisma.order.findFirst({
+        where: {
+          userId,
+          event: {
+            id: eventId,
+          },
+        },
+        include: {
+          event: true,
+          details: {
+            include: { tickets: true },
+          },
+        },
+      });
+
+      if (order) {
+        return res.status(400).json({
+          message: "User has already purchased tickets for this event",
+        });
+      }
+
+      res.status(200).json(null);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check user purchase status" });
     }
   }
 }
