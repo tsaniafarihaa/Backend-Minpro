@@ -16,6 +16,7 @@ class DashboardRouter {
         this.router.get("/getActiveEvent", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getEventActive);
         this.router.get("/getDeactiveEvent", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getEventDeactive);
         this.router.get("/getTotalRevenue", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getTotalRevenue);
+        this.router.get("/getalltransaction", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getTotalPaidTransactions);
         //Routing untuk mendapatkan si event beserta pendapatan nya berdasarkan promotor yg telah login
         this.router.get("/promotor/detailEventDashboard", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getPromotorEvents);
         this.router.get("/getgrouprevenue", verify_promotor_1.verifyTokenPromotor, this.dashboardController.getRevenueGroupedByPeriod);
