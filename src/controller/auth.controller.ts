@@ -39,7 +39,7 @@ export class AuthController {
     } catch (err) {
       console.error(err);
       res.status(400).send({
-        message: "Login failed",
+        message: "Please check your username and password",
       });
     }
   }
@@ -49,68 +49,41 @@ export class AuthController {
   async registerUser(req: Request, res: Response) {
     try {
       const { username, email, password, confirmPassword, refCode } = req.body;
-
+  
       if (password !== confirmPassword)
         throw { message: "Passwords do not match!" };
-
+  
       const user = await findUser(username, email);
       if (user) throw { message: "Username or email has already been used" };
-
+  
       const salt = await genSalt(10);
       const hashPassword = await hash(password, salt);
-
+  
       const newUserData: any = {
         username,
         email,
         password: hashPassword,
         refCode: generateReferalCode(),
       };
-
-      // Cek si Reveral Code nya
+  
+      // Check if a referral code was provided
       if (refCode) {
         const referer = await prisma.user.findUnique({
           where: { refCode },
         });
         if (!referer) throw { message: "Invalid referral code" };
-
-        //plus point jika si reveral dipakai
-        await prisma.user.update({
-          where: { id: referer.id },
-          data: { points: { increment: 10000 } },
-        });
-
-        // persentase si kupon jika dipakai
-        const coupon = await prisma.userCoupon.create({
-          data: {
-            percentage: 10,
-            isRedeem: false,
-            expiredAt: addMonths(new Date(), 3),
-          },
-        });
-        newUserData.percentage = coupon.percentage;
-        newUserData.userCouponId = coupon.id;
+  
+        // Save the referer's ID for later point and coupon assignment during verification
         newUserData.refCodeBy = referer.id;
-
-        //log untuk melihat hasil si referal dari siapa
-        await prisma.refLog.create({
-          data: {
-            pointGet: 10000,
-            expiredAt: addMonths(new Date(), 3),
-            isUsed: false,
-            user: {
-              connect: { id: referer.id },
-            },
-          },
-        });
       }
-
-      // buat user baru dari hasil data
+  
+      // Create the new user
       const newUser = await prisma.user.create({ data: newUserData });
-
+  
       const payload = { id: newUser.id };
       const token = sign(payload, process.env.JWT_KEY!, { expiresIn: "1d" });
       const linkUser = `${base_url_fe}/verifyuser/${token}`;
-
+  
       const templatePath = path.join(
         __dirname,
         "../templates",
@@ -123,7 +96,7 @@ export class AuthController {
         linkUser,
         refCode: newUser.refCode,
       });
-
+  
       // Mailer transport
       await transporter.sendMail({
         from: "dattariqf@gmail.com",
@@ -131,28 +104,86 @@ export class AuthController {
         subject: "Welcome To TIKO",
         html,
       });
-
-      res.status(201).json({ massage: "Registration Succesfull" });
+  
+      res.status(201).json({ message: "Registration Successful" });
     } catch (err: any) {
       console.error(err);
-      res.status(400).json({ massage: "Internal server error" });
+      res.status(400).json({ message: "Please check again username and email has been used" });
     }
   }
+  
 
-  async verifyUser(req: Request, res: Response) {
+  async verifyUser(req: Request, res: Response):Promise<void> {
     try {
       const { token } = req.params;
       const verifiedUser: any = verify(token, process.env.JWT_KEY!);
-      await prisma.user.update({
+    
+      // Fetch the user to check if already verified
+      const user = await prisma.user.findUnique({
+        where: { id: verifiedUser.id },
+      });
+    
+      if (!user) {
+         res.status(404).send({ message: "User not found!" });
+      }
+    
+      if (user?.isVerify) {
+         res.status(400).send({ message: "Account is already verified!" });
+      }
+    
+      // Update the user to mark them as verified
+      const updatedUser = await prisma.user.update({
         data: { isVerify: true },
         where: { id: verifiedUser.id },
       });
-      res.status(200).send({ message: "Verify Successfully" });
+    
+      // Check if the user was referred by someone
+      if (updatedUser.refCodeBy) {
+        // Increment points for the referer
+        await prisma.user.update({
+          where: { id: updatedUser.refCodeBy },
+          data: { points: { increment: 10000 } },
+        });
+    
+        // Log the referral points for tracking
+        await prisma.refLog.create({
+          data: {
+            pointGet: 10000,
+            expiredAt: addMonths(new Date(), 3),
+            isUsed: false,
+            user: {
+              connect: { id: updatedUser.refCodeBy },
+            },
+          },
+        });
+    
+        // Create a coupon for the new user
+        const coupon = await prisma.userCoupon.create({
+          data: {
+            percentage: 10,
+            isRedeem: false,
+            expiredAt: addMonths(new Date(), 3),
+          },
+        });
+    
+        // Assign the coupon to the verified user
+        await prisma.user.update({
+          where: { id: updatedUser.id },
+          data: {
+            userCouponId: coupon.id,
+            percentage: coupon.percentage,
+          },
+        });
+      }
+    
+      res.status(200).send({ message: "Verified successfully, points granted, and coupon issued!" });
     } catch (err) {
-      console.log(err);
-      res.status(400).send(err);
+      console.error(err);
+      res.status(400).send({ message: "Verification failed", error: err });
     }
+    
   }
+  
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////   PROMOTOR   /////////////////////////////////////////////////////////////////////////////
@@ -202,7 +233,7 @@ export class AuthController {
       res.status(201).json({ massage: "Registration Succes" });
     } catch (err) {
       console.error(err);
-      res.status(400).json({ massage: "Registration Failed" });
+      res.status(400).json({ massage: "Please check the username and email has been used" });
     }
   }
 
