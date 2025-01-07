@@ -213,15 +213,21 @@ export class PaymentController {
         include: { usercoupon: true },
       });
 
-      if (!user?.usercoupon || !user.usercoupon.isRedeem) {
+      if (!user?.usercoupon) {
         return res.status(200).json({
           canUseCoupon: false,
           couponUsageCount: 0,
           remainingCoupons: 0,
-          message:
-            user?.usercoupon && !user.usercoupon.isRedeem
-              ? "Your coupon has already been used"
-              : "No valid coupon available",
+          message: "No coupon available",
+        });
+      }
+
+      if (user.usercoupon.isRedeem) {
+        return res.status(200).json({
+          canUseCoupon: false,
+          couponUsageCount: 0,
+          remainingCoupons: 0,
+          message: "Your coupon has already been used",
         });
       }
 

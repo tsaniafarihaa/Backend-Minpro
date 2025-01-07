@@ -100,17 +100,17 @@ class OrderController {
                             where: { id: userId },
                             include: { usercoupon: true },
                         });
-                        if ((user === null || user === void 0 ? void 0 : user.usercoupon) && user.usercoupon.isRedeem) {
-                            userCouponId = user.usercoupon.id;
-                            // Update isRedeem ke false karena kupon sudah digunakan
-                            yield tx.userCoupon.update({
-                                where: { id: userCouponId },
-                                data: { isRedeem: false },
-                            });
+                        if (!(user === null || user === void 0 ? void 0 : user.usercoupon)) {
+                            throw new Error("No coupon available");
                         }
-                        else {
-                            throw new Error("No valid coupon available or coupon already used");
+                        if (user.usercoupon.isRedeem) {
+                            throw new Error("Coupon already used");
                         }
+                        userCouponId = user.usercoupon.id;
+                        yield tx.userCoupon.update({
+                            where: { id: userCouponId },
+                            data: { isRedeem: true },
+                        });
                     }
                     // Create order with proper status
                     return yield tx.order.create({

@@ -208,14 +208,20 @@ class PaymentController {
                     where: { id: userId },
                     include: { usercoupon: true },
                 });
-                if (!(user === null || user === void 0 ? void 0 : user.usercoupon) || !user.usercoupon.isRedeem) {
+                if (!(user === null || user === void 0 ? void 0 : user.usercoupon)) {
                     return res.status(200).json({
                         canUseCoupon: false,
                         couponUsageCount: 0,
                         remainingCoupons: 0,
-                        message: (user === null || user === void 0 ? void 0 : user.usercoupon) && !user.usercoupon.isRedeem
-                            ? "Your coupon has already been used"
-                            : "No valid coupon available",
+                        message: "No coupon available",
+                    });
+                }
+                if (user.usercoupon.isRedeem) {
+                    return res.status(200).json({
+                        canUseCoupon: false,
+                        couponUsageCount: 0,
+                        remainingCoupons: 0,
+                        message: "Your coupon has already been used",
                     });
                 }
                 // Check if user has ever used any coupon

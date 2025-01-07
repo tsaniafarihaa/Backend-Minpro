@@ -107,18 +107,19 @@ export class OrderController {
               include: { usercoupon: true },
             });
 
-            if (user?.usercoupon && user.usercoupon.isRedeem) {
-              userCouponId = user.usercoupon.id;
-              // Update isRedeem ke false karena kupon sudah digunakan
-              await tx.userCoupon.update({
-                where: { id: userCouponId },
-                data: { isRedeem: false },
-              });
-            } else {
-              throw new Error(
-                "No valid coupon available or coupon already used"
-              );
+            if (!user?.usercoupon) {
+              throw new Error("No coupon available");
             }
+
+            if (user.usercoupon.isRedeem) {
+              throw new Error("Coupon already used");
+            }
+
+            userCouponId = user.usercoupon.id;
+            await tx.userCoupon.update({
+              where: { id: userCouponId },
+              data: { isRedeem: true },
+            });
           }
 
           // Create order with proper status
