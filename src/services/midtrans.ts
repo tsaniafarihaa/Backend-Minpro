@@ -1,4 +1,3 @@
-// src/services/midtrans.ts
 const midtransClient = require("midtrans-client");
 
 interface TransactionDetails {

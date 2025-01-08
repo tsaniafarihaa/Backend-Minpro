@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.midtransService = void 0;
-// src/services/midtrans.ts
 const midtransClient = require("midtrans-client");
 class MidtransService {
     constructor() {
