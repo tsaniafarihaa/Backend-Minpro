@@ -102,31 +102,34 @@ export class OrderController {
         }
 
         // Create order
-        return await tx.order.create({
-          data: {
-            userId,
-            eventId,
-            status: orderStatus,
-            totalPrice,
-            finalPrice,
-            details: {
-              create: {
-                quantity,
-                userCouponId,
-                tickets: {
-                  connect: { id: ticketId },
+        return (
+          await tx.order.create({
+            data: {
+              userId,
+              eventId,
+              status: orderStatus,
+              totalPrice,
+              finalPrice,
+              details: {
+                create: {
+                  quantity,
+                  userCouponId,
+                  tickets: {
+                    connect: { id: ticketId },
+                  },
                 },
               },
             },
-          },
-          include: {
-            details: {
-              include: {
-                tickets: true,
+            include: {
+              details: {
+                include: {
+                  tickets: true,
+                },
               },
             },
-          },
-        });
+          }),
+          { timeout: 6000 }
+        );
       });
 
       return res.status(201).json({
