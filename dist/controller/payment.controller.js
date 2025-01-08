@@ -412,7 +412,7 @@ class PaymentController {
                 if (!order) {
                     return res.status(404).json({ message: "Order not found" });
                 }
-                const midtransStatus = yield midtrans_1.midtransService.getStatus(`ORDER-${orderId}`);
+                const midtransStatus = yield midtrans_1.midtransService.getStatus(`ORDER-${orderId + 1000}`);
                 return res.status(200).json({
                     order,
                     paymentStatus: midtransStatus,

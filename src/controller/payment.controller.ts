@@ -445,7 +445,7 @@ export class PaymentController {
       }
 
       const midtransStatus = await midtransService.getStatus(
-        `ORDER-${orderId}`
+        `ORDER-${orderId + 1000}`
       );
 
       return res.status(200).json({
