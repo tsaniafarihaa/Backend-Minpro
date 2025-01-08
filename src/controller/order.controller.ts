@@ -39,71 +39,71 @@ export class OrderController {
       const orderStatus = isFreeTicket ? "PAID" : status || "PENDING";
 
       // Start transaction
-      const order = await prisma.$transaction(async (tx) => {
-        // Update ticket quantity
-        await tx.ticket.update({
-          where: { id: ticketId },
-          data: { quantity: { decrement: quantity } },
-        });
-
-        let userCouponId = null;
-
-        // Handle points redemption
-        if (!isFreeTicket && usePoints) {
-          const user = await tx.user.findUnique({
-            where: { id: userId },
+      const order = await prisma.$transaction(
+        async (tx) => {
+          // Update ticket quantity
+          await tx.ticket.update({
+            where: { id: ticketId },
+            data: { quantity: { decrement: quantity } },
           });
 
-          if (!user || user.points < 10000) {
-            throw new Error("Insufficient points");
+          let userCouponId = null;
+
+          // Handle points redemption
+          if (!isFreeTicket && usePoints) {
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+            });
+
+            if (!user || user.points < 10000) {
+              throw new Error("Insufficient points");
+            }
+
+            await tx.user.update({
+              where: { id: userId },
+              data: { points: { decrement: 10000 } },
+            });
           }
 
-          await tx.user.update({
-            where: { id: userId },
-            data: { points: { decrement: 10000 } },
-          });
-        }
+          // Handle coupon
+          if (!isFreeTicket && useCoupon) {
+            const user = await tx.user.findUnique({
+              where: { id: userId },
+              include: { usercoupon: true },
+            });
 
-        // Handle coupon
-        if (!isFreeTicket && useCoupon) {
-          const user = await tx.user.findUnique({
-            where: { id: userId },
-            include: { usercoupon: true },
-          });
+            if (!user?.usercoupon) {
+              throw new Error("No coupon available");
+            }
 
-          if (!user?.usercoupon) {
-            throw new Error("No coupon available");
-          }
+            if (user.usercoupon.isRedeem === true) {
+              throw new Error("Coupon has already been used");
+            }
 
-          if (user.usercoupon.isRedeem === true) {
-            throw new Error("Coupon has already been used");
-          }
-
-          const couponUseCount = await tx.orderDetail.count({
-            where: {
-              order: {
-                eventId,
-                NOT: { status: "CANCELED" },
+            const couponUseCount = await tx.orderDetail.count({
+              where: {
+                order: {
+                  eventId,
+                  NOT: { status: "CANCELED" },
+                },
+                userCouponId: { not: null },
               },
-              userCouponId: { not: null },
-            },
-          });
+            });
 
-          if (couponUseCount >= 10) {
-            throw new Error("Coupon limit reached for this event");
+            if (couponUseCount >= 10) {
+              throw new Error("Coupon limit reached for this event");
+            }
+
+            userCouponId = user.usercoupon.id;
+
+            await tx.userCoupon.update({
+              where: { id: userCouponId },
+              data: { isRedeem: true },
+            });
           }
 
-          userCouponId = user.usercoupon.id;
-
-          await tx.userCoupon.update({
-            where: { id: userCouponId },
-            data: { isRedeem: true },
-          });
-        }
-
-        // Create order
-        return (
-          await tx.order.create({
+          // Create order
+          return await tx.order.create({
             data: {
               userId,
               eventId,
@@ -127,10 +127,10 @@ export class OrderController {
                 },
               },
             },
-          }),
-          { timeout: 6000 }
-        );
-      });
+          });
+        },
+        { timeout: 6000 }
+      );
 
       return res.status(201).json({
         message: "Order created successfully",
